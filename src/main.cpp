@@ -1,4 +1,6 @@
 #include "render.hpp"
+#include "state.hpp"
+#include "map.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -25,6 +27,8 @@ float last_second_time = 0.0f;
 int frames_this_second = 0;
 int fps = 0;
 
+IState* state;
+
 // Game loop functions
 void input();
 void update();
@@ -41,6 +45,8 @@ int main(int argc, char** argv) {
     if(!engine_init(argc, argv)) {
         return 0;
     }
+
+    state = new MapState();
 
     while(engine_running) {
         input();
@@ -63,9 +69,13 @@ void input() {
     }
 }
 
-void update() {}
+void update() {
+    state->update();
+}
 void render() {
     render_clear();
+
+    state->render();
 
     render_text(("FPS: " + std::to_string(fps)).c_str(), COLOR_WHITE, 0, 0);
     render_present();
