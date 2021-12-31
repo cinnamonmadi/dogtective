@@ -1,9 +1,12 @@
 #pragma once
 
-#include "state.hpp"
+#include <string>
 
-class MapState : public IState {
+class Map {
     public:
-        void update();
+        Map(std::string filename);
         void render();
+    private:
+        std::string background_filepath;
+        int background_image;
 };
