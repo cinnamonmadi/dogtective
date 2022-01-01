@@ -8,5 +8,5 @@ Map::Map(std::string filename) {
 }
 
 void Map::render() {
-    render_image(background_image, (vec2) { .x = 0, .y = 0 });
+    render_image(background_image, camera_offset.inverse());
 }

@@ -35,6 +35,7 @@ int render_load_spritesheet(const char* path, vec2 frame_size);
 // Render functions
 void render_clear();
 void render_present();
-int render_text(const char* text, SDL_Color color, int x, int y);
+Image* render_create_text_image(const char* text, SDL_Color color);
+void render_text(const char* text, SDL_Color color, vec2 position);
 void render_image(int image_index, vec2 position);
 void render_image_frame(int image_index, vec2 frame, vec2 position);

@@ -92,8 +92,8 @@ void render() {
     state->render();
 
     if(engine_render_fps) {
-        render_text(("FPS: " + std::to_string(fps)).c_str(), COLOR_YELLOW, 0, 0);
-        render_text(("DPS: " + std::to_string(dps)).c_str(), COLOR_YELLOW, 0, 10);
+        render_text(("FPS: " + std::to_string(fps)).c_str(), COLOR_YELLOW, (vec2) { .x = 0, .y =  0});
+        render_text(("DPS: " + std::to_string(dps)).c_str(), COLOR_YELLOW, (vec2) { .x = 0, .y = 10});
     }
     render_present();
 }

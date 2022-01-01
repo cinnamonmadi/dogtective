@@ -86,21 +86,36 @@ void render_present() {
     SDL_RenderPresent(renderer);
 }
 
-int render_text(const char* text, SDL_Color color, int x, int y) {
+Image* render_create_text_image(const char* text, SDL_Color color) {
     SDL_Surface* text_surface = TTF_RenderText_Solid(font, text, color);
     if(text_surface == nullptr) {
         std::cout << "Unable to render text to surface! SDL Error " << TTF_GetError() << std::endl;
-        return -1;
+        return nullptr;
     }
 
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
     if(text_texture == nullptr) {
         std::cout << "Unable to create text texture! SDL Error " << SDL_GetError() << std::endl;
-        return -1;
+        return nullptr;
     }
 
-    SDL_Rect source_rect = (SDL_Rect){ .x = 0, .y = 0, .w = text_surface->w, .h = text_surface->h };
-    SDL_Rect dest_rect = (SDL_Rect){ .x = x, .y = y, .w = text_surface->w, .h = text_surface->h };
+
+    Image* text_image = new (Image) {
+        .texture = text_texture,
+        .size = (vec2){ .x = text_surface->w, .y = text_surface->h },
+        .frame_size = (vec2) { .x = 0, .y = 0 }
+    };
+
+    SDL_FreeSurface(text_surface);
+
+    return text_image;
+}
+
+void render_text(const char* text, SDL_Color color, vec2 position) {
+    Image* text_image = render_create_text_image(text, color);
+
+    SDL_Rect source_rect = (SDL_Rect){ .x = 0, .y = 0, .w = text_image->size.x, .h = text_image->size.y };
+    SDL_Rect dest_rect = (SDL_Rect){ .x = position.x, .y = position.y, .w = text_image->size.x, .h = text_image->size.y };
     if(dest_rect.x == RENDER_POSITION_CENTERED) {
         dest_rect.x = (SCREEN_WIDTH / 2) - (source_rect.w / 2);
     }
@@ -108,13 +123,9 @@ int render_text(const char* text, SDL_Color color, int x, int y) {
         dest_rect.y = (SCREEN_HEIGHT / 2) - (source_rect.h / 2);
     }
 
-    SDL_RenderCopy(renderer, text_texture, &source_rect, &dest_rect);
-    int text_width = text_surface->w;
-
-    SDL_FreeSurface(text_surface);
-    SDL_DestroyTexture(text_texture);
-
-    return text_width;
+    SDL_RenderCopy(renderer, text_image->texture, &source_rect, &dest_rect);
+    SDL_DestroyTexture(text_image->texture);
+    delete text_image;
 }
 
 void render_image(int image_index, vec2 position) {
