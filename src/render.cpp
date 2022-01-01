@@ -4,7 +4,6 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
-#include <vector>
 
 const int RENDER_POSITION_CENTERED = -1;
 const SDL_Color COLOR_WHITE = (SDL_Color) { .r = 255, .g = 255, .b = 255, .a = 255 };
@@ -13,8 +12,7 @@ const SDL_Color COLOR_YELLOW = (SDL_Color) { .r = 255, .g = 255, .b = 0, .a = 25
 
 // Resources
 TTF_Font* font;
-std::vector<Image> images;
-std::vector<const char*> image_paths;
+Image images[IMAGE_COUNT];
 
 // Resource management functions
 
@@ -25,54 +23,38 @@ bool render_load_resources() {
         return false;
     }
 
+    render_load_spritesheet(IMAGE_PLAYER, "./res/witch.png", (ivec2) { .x = 16, .y = 16 });
+    render_load_image(IMAGE_MAP, "./res/maps/test.png");
+
     return true;
 }
 
 void render_free_resources() {
     TTF_CloseFont(font);
 
-    for(Image image : images) {
-        SDL_DestroyTexture(image.texture);
+    for(int i = 0; i < IMAGE_COUNT; i++) {
+        SDL_DestroyTexture(images[i].texture);
     }
 }
 
-int render_load_image(const char* path) {
-    for(int i = 0; i < image_paths.size(); i++) {
-        bool image_already_loaded = strcmp(image_paths.at(i), path) == 0;
-        if(image_already_loaded) {
-            return i;
-        }
-    }
-
+void render_load_image(ImageName image_name, const char* path) {
     SDL_Surface* loaded_surface = IMG_Load(path);
     if(loaded_surface == nullptr) {
         std::cout << "Unable to load image " << path << "! SDL Error " << IMG_GetError() << std::endl;
-        return -1;
+        return;
     }
 
-    Image new_image;
-    new_image.texture = SDL_CreateTextureFromSurface(renderer, loaded_surface);
-    if(new_image.texture == nullptr) {
+    images[image_name].texture = SDL_CreateTextureFromSurface(renderer, loaded_surface);
+    if(images[image_name].texture == nullptr) {
         std::cout << "Unable to create image texture! SDL Error " << SDL_GetError() << std::endl;
-        return -1;
+        return;
     }
-    new_image.size = (vec2) { loaded_surface->w, loaded_surface->h };
-
-    images.push_back(new_image);
-    image_paths.push_back(path);
-
-    return images.size() - 1;
+    images[image_name].size = (ivec2) {  .x = loaded_surface->w, .y = loaded_surface->h };
 }
 
-int render_load_spritesheet(const char* path, vec2 frame_size) {
-    int image_index = render_load_image(path);
-    if(image_index == -1) {
-        return image_index;
-    }
-
-    images[image_index].frame_size = frame_size;
-
-    return image_index;
+void render_load_spritesheet(ImageName image_name, const char* path, ivec2 frame_size) {
+    render_load_image(image_name, path);
+    images[image_name].frame_size = frame_size;
 }
 
 // Rendering functions
@@ -102,8 +84,8 @@ Image* render_create_text_image(const char* text, SDL_Color color) {
 
     Image* text_image = new (Image) {
         .texture = text_texture,
-        .size = (vec2){ .x = text_surface->w, .y = text_surface->h },
-        .frame_size = (vec2) { .x = 0, .y = 0 }
+        .size = (ivec2){ .x = text_surface->w, .y = text_surface->h },
+        .frame_size = (ivec2) { .x = 0, .y = 0 }
     };
 
     SDL_FreeSurface(text_surface);
@@ -111,7 +93,7 @@ Image* render_create_text_image(const char* text, SDL_Color color) {
     return text_image;
 }
 
-void render_text(const char* text, SDL_Color color, vec2 position) {
+void render_text(const char* text, SDL_Color color, ivec2 position) {
     Image* text_image = render_create_text_image(text, color);
 
     SDL_Rect source_rect = (SDL_Rect){ .x = 0, .y = 0, .w = text_image->size.x, .h = text_image->size.y };
@@ -128,14 +110,12 @@ void render_text(const char* text, SDL_Color color, vec2 position) {
     delete text_image;
 }
 
-void render_image(int image_index, vec2 position) {
-    Image& image = images.at(image_index);
-
+void render_image(ImageName image_name, ivec2 position) {
     SDL_Rect dst_rect = (SDL_Rect) {
         .x = position.x,
         .y = position.y,
-        .w = image.size.x,
-        .h = image.size.y,
+        .w = images[image_name].size.x,
+        .h = images[image_name].size.y,
     };
 
     SDL_Rect screen_rect = (SDL_Rect) { .x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT };
@@ -143,11 +123,11 @@ void render_image(int image_index, vec2 position) {
         return;
     }
 
-    SDL_RenderCopy(renderer, image.texture, NULL, &dst_rect);
+    SDL_RenderCopy(renderer, images[image_name].texture, NULL, &dst_rect);
 }
 
-void render_image_frame(int image_index, vec2 frame, vec2 position) {
-    Image& image = images.at(image_index);
+void render_image_frame(ImageName image_name, ivec2 frame, ivec2 position, bool flipped) {
+    Image& image = images[image_name];
 
     SDL_Rect src_rect = (SDL_Rect) {
         .x = frame.x * image.frame_size.x,
@@ -164,7 +144,7 @@ void render_image_frame(int image_index, vec2 frame, vec2 position) {
 
     if(src_rect.x < 0 || src_rect.x > image.size.x - image.frame_size.x
         || src_rect.y < 0 || src_rect.y > image.size.y - image.frame_size.y) {
-        std::cout << "Index (" << frame.x << ", " << frame.y << ") out of bounds for image " << image_index << std::endl;
+        std::cout << "Index (" << frame.x << ", " << frame.y << ") out of bounds for image " << image_name << std::endl;
         return;
     }
 
@@ -173,5 +153,10 @@ void render_image_frame(int image_index, vec2 frame, vec2 position) {
         return;
     }
 
-    SDL_RenderCopy(renderer, image.texture, &src_rect, &dst_rect);
+    SDL_RendererFlip render_flip = SDL_FLIP_NONE;
+    if(flipped) {
+        render_flip = SDL_FLIP_HORIZONTAL;
+    }
+
+    SDL_RenderCopyEx(renderer, image.texture, &src_rect, &dst_rect, 0, NULL, render_flip);
 }

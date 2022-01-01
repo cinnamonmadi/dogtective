@@ -1,6 +1,6 @@
 #include "render.hpp"
 #include "state.hpp"
-#include "mapedit.hpp"
+#include "map.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    state = new MapEditState();
+    state = new Map();
 
     while(engine_running) {
         input();
@@ -84,7 +84,7 @@ void input() {
 }
 
 void update() {
-    state->update();
+    state->update(delta);
 }
 void render() {
     render_clear();
@@ -92,8 +92,8 @@ void render() {
     state->render();
 
     if(engine_render_fps) {
-        render_text(("FPS: " + std::to_string(fps)).c_str(), COLOR_YELLOW, (vec2) { .x = 0, .y =  0});
-        render_text(("DPS: " + std::to_string(dps)).c_str(), COLOR_YELLOW, (vec2) { .x = 0, .y = 10});
+        render_text(("FPS: " + std::to_string(fps)).c_str(), COLOR_YELLOW, (ivec2) { .x = 0, .y =  0});
+        render_text(("DPS: " + std::to_string(dps)).c_str(), COLOR_YELLOW, (ivec2) { .x = 0, .y = 10});
     }
     render_present();
 }
