@@ -29,8 +29,8 @@ class Map : public IState {
                 Direction facing_direction;
                 vec2 position;
                 vec2 velocity;
-            private:
                 int animation_frame;
+            private:
                 float animation_timer;
         };
 

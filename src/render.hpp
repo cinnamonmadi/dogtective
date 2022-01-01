@@ -23,20 +23,20 @@ typedef enum ImageName {
 
 typedef struct Image {
     SDL_Texture* texture;
-    ivec2 size;
-    ivec2 frame_size;
+    vec2 size;
+    vec2 frame_size;
 } Image;
 
 // Resource initialization
 bool render_load_resources();
 void render_free_resources();
 void render_load_image(ImageName image_name, const char* path);
-void render_load_spritesheet(ImageName image_name, const char* path, ivec2 frame_size);
+void render_load_spritesheet(ImageName image_name, const char* path, vec2 frame_size);
 
 // Render functions
 void render_clear();
 void render_present();
 Image* render_create_text_image(const char* text, SDL_Color color);
-void render_text(const char* text, SDL_Color color, ivec2 position);
-void render_image(ImageName image_name, ivec2 position);
-void render_image_frame(ImageName image_name, ivec2 frame, ivec2 position, bool flipped);
+void render_text(const char* text, SDL_Color color, vec2 position);
+void render_image(ImageName image_name, vec2 position);
+void render_image_frame(ImageName image_name, vec2 frame, vec2 position, bool flipped);

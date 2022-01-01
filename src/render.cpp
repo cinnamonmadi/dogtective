@@ -23,7 +23,7 @@ bool render_load_resources() {
         return false;
     }
 
-    render_load_spritesheet(IMAGE_PLAYER, "./res/witch.png", (ivec2) { .x = 16, .y = 16 });
+    render_load_spritesheet(IMAGE_PLAYER, "./res/witch.png", (vec2) { .x = 16, .y = 16 });
     render_load_image(IMAGE_MAP, "./res/maps/test.png");
 
     return true;
@@ -49,10 +49,10 @@ void render_load_image(ImageName image_name, const char* path) {
         std::cout << "Unable to create image texture! SDL Error " << SDL_GetError() << std::endl;
         return;
     }
-    images[image_name].size = (ivec2) {  .x = loaded_surface->w, .y = loaded_surface->h };
+    images[image_name].size = (vec2) {  .x = loaded_surface->w, .y = loaded_surface->h };
 }
 
-void render_load_spritesheet(ImageName image_name, const char* path, ivec2 frame_size) {
+void render_load_spritesheet(ImageName image_name, const char* path, vec2 frame_size) {
     render_load_image(image_name, path);
     images[image_name].frame_size = frame_size;
 }
@@ -84,8 +84,8 @@ Image* render_create_text_image(const char* text, SDL_Color color) {
 
     Image* text_image = new (Image) {
         .texture = text_texture,
-        .size = (ivec2){ .x = text_surface->w, .y = text_surface->h },
-        .frame_size = (ivec2) { .x = 0, .y = 0 }
+        .size = (vec2){ .x = text_surface->w, .y = text_surface->h },
+        .frame_size = (vec2) { .x = 0, .y = 0 }
     };
 
     SDL_FreeSurface(text_surface);
@@ -93,7 +93,7 @@ Image* render_create_text_image(const char* text, SDL_Color color) {
     return text_image;
 }
 
-void render_text(const char* text, SDL_Color color, ivec2 position) {
+void render_text(const char* text, SDL_Color color, vec2 position) {
     Image* text_image = render_create_text_image(text, color);
 
     SDL_Rect source_rect = (SDL_Rect){ .x = 0, .y = 0, .w = text_image->size.x, .h = text_image->size.y };
@@ -110,7 +110,7 @@ void render_text(const char* text, SDL_Color color, ivec2 position) {
     delete text_image;
 }
 
-void render_image(ImageName image_name, ivec2 position) {
+void render_image(ImageName image_name, vec2 position) {
     SDL_Rect dst_rect = (SDL_Rect) {
         .x = position.x,
         .y = position.y,
@@ -126,7 +126,7 @@ void render_image(ImageName image_name, ivec2 position) {
     SDL_RenderCopy(renderer, images[image_name].texture, NULL, &dst_rect);
 }
 
-void render_image_frame(ImageName image_name, ivec2 frame, ivec2 position, bool flipped) {
+void render_image_frame(ImageName image_name, vec2 frame, vec2 position, bool flipped) {
     Image& image = images[image_name];
 
     SDL_Rect src_rect = (SDL_Rect) {

@@ -79,7 +79,7 @@ void Map::handle_input(SDL_Event e) {
 }
 
 void Map::update(float delta) {
-    player.velocity = player_direction.normalized() * (100.0f * delta);
+    player.velocity = player_direction;
     player.position += player.velocity;
 
     if(player.velocity.y > 0) {
@@ -95,7 +95,7 @@ void Map::update(float delta) {
 }
 
 void Map::render() {
-    render_image(background_image, camera_offset.inverse().as_ivec2());
+    render_image(background_image, camera_offset.inverse());
     player.render(camera_offset);
 }
 
@@ -131,7 +131,7 @@ void Map::Actor::update_sprite(float delta) {
 }
 
 void Map::Actor::render(vec2 camera_offset) {
-    ivec2 sprite_frame;
+    vec2 sprite_frame;
     switch(facing_direction) {
         case DIRECTION_DOWN:
             sprite_frame.y = 0;
@@ -146,5 +146,5 @@ void Map::Actor::render(vec2 camera_offset) {
     sprite_frame.x = animation_frame;
     bool flipped = facing_direction == DIRECTION_LEFT;
 
-    render_image_frame(image_name, sprite_frame, (position - camera_offset).as_ivec2(), flipped);
+    render_image_frame(image_name, sprite_frame, position - camera_offset, flipped);
 }
