@@ -1,6 +1,5 @@
 #pragma once
 
-#include "state.hpp"
 #include "render.hpp"
 #include "vector.hpp"
 
@@ -11,13 +10,8 @@ typedef enum Direction {
     DIRECTION_LEFT
 } Direction;
 
-class Map : public IState {
+class Map {
     public:
-        Map();
-        void handle_input(SDL_Event e);
-        void update(float delta);
-        void render();
-    private:
         class Actor {
             public:
                 Actor();
@@ -34,10 +28,11 @@ class Map : public IState {
                 float animation_timer;
         };
 
-        ImageName background_image;
-        vec2 camera_offset;
+        Map();
+        void update(float delta);
+        void render();
 
+        vec2 camera_offset;
         Actor player;
-        vec2 player_direction;
-        bool direction_key_pressed[4];
+        ImageName background_image;
 };

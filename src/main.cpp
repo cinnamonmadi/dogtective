@@ -1,6 +1,7 @@
 #include "render.hpp"
 #include "state.hpp"
-#include "map.hpp"
+#include "mapstate.hpp"
+#include "mapedit.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -21,6 +22,7 @@ int resolution_height = 720;
 bool engine_running = true;
 bool engine_is_fullscreen = false;
 bool engine_render_fps = false;
+bool engine_edit_mode = false;
 
 // Timing variables
 const float FRAME_DURATION = 1.0f / 60.0f;
@@ -52,7 +54,11 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    state = new Map();
+    if(engine_edit_mode) {
+        state = new MapEditState();
+    } else {
+        state = new MapState();
+    }
 
     while(engine_running) {
         input();
@@ -104,6 +110,11 @@ bool engine_init(int argc, char** argv) {
     bool init_fullscreened = false;
 
     // Parse system arguments
+    for(int i = 0; i < argc; i++) {
+        if(strcmp(argv[i], "--edit") == 0) {
+            engine_edit_mode = true;
+        }
+    }
 
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cout << "Unable to initialize SDL! SDL Error: " << SDL_GetError() << std::endl;
