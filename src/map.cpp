@@ -1,10 +1,12 @@
 #include "map.hpp"
 
+#include "render.hpp"
+
 Map::Map() {
-    background_image = IMAGE_MAP;
+    background_image = render_load_image("./res/maps/test.png");
     camera_offset = (vec2) { .x = 0, .y = 0 };
 
-    player = Actor(IMAGE_PLAYER);
+    player = Actor("./res/witch.png");
 }
 
 void Map::update(float delta) {
@@ -34,8 +36,8 @@ const float ACTOR_FRAME_DURATION = 0.2f;
 Map::Actor::Actor() {
 }
 
-Map::Actor::Actor(ImageName image_name) {
-    this->image_name = image_name;
+Map::Actor::Actor(const char* image_path) {
+    image_index = render_load_spritesheet(image_path, (vec2) { .x = 16, .y = 16 });
     facing_direction = DIRECTION_DOWN;
     position = (vec2) { .x = 0, .y = 0 };
     velocity = (vec2) { .x = 0,. y = 0 };
@@ -74,5 +76,5 @@ void Map::Actor::render(vec2 camera_offset) {
     sprite_frame.x = animation_frame;
     bool flipped = facing_direction == DIRECTION_LEFT;
 
-    render_image_frame(image_name, sprite_frame, position - camera_offset, flipped);
+    render_image_frame(image_index, sprite_frame, position - camera_offset, flipped);
 }

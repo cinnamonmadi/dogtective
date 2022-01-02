@@ -1,6 +1,5 @@
 #pragma once
 
-#include "render.hpp"
 #include "vector.hpp"
 
 typedef enum Direction {
@@ -15,11 +14,11 @@ class Map {
         class Actor {
             public:
                 Actor();
-                Actor(ImageName image_name);
+                Actor(const char* image_path);
                 void update_sprite(float delta);
                 void render(vec2 camera_offset);
 
-                ImageName image_name;
+                int image_index;
                 Direction facing_direction;
                 vec2 position;
                 vec2 velocity;
@@ -34,5 +33,5 @@ class Map {
 
         vec2 camera_offset;
         Actor player;
-        ImageName background_image;
+        int background_image;
 };
