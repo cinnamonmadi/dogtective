@@ -4,6 +4,7 @@
 
 MapState::MapState() {
     map = Map();
+    map.load("./map/test.json");
     player_direction = (vec2) { .x = 0, .y = 0 };
     for(int i = 0; i < 4; i++) {
         direction_key_pressed[i] = false;

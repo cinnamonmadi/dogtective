@@ -1,6 +1,9 @@
 #pragma once
 
 #include "vector.hpp"
+#include <SDL2/SDL.h>
+#include <vector>
+#include <string>
 
 typedef enum Direction {
     DIRECTION_UP,
@@ -14,7 +17,9 @@ class Map {
         class Actor {
             public:
                 Actor();
-                Actor(const char* image_path);
+                Actor(std::string image_path);
+                SDL_Rect get_rect() const;
+
                 void update_sprite(float delta);
                 void render(vec2 camera_offset);
 
@@ -28,10 +33,17 @@ class Map {
         };
 
         Map();
+        bool load(std::string path);
+        bool save(std::string path);
+
         void update(float delta);
+        void actor_handle_collisions(Actor& actor);
+
         void render();
+
+        int background_image;
+        std::vector<SDL_Rect> colliders;
 
         vec2 camera_offset;
         Actor player;
-        int background_image;
 };

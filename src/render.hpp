@@ -2,6 +2,7 @@
 
 #include "vector.hpp"
 #include <SDL2/SDL.h>
+#include <string>
 
 // Externs defined in main.cpp
 extern const int SCREEN_WIDTH;
@@ -23,8 +24,9 @@ typedef struct Image {
 // Resource initialization
 bool render_load_resources();
 void render_free_resources();
-int render_load_image(const char* path);
-int render_load_spritesheet(const char* path, vec2 frame_size);
+int render_load_image(std::string path);
+int render_load_spritesheet(std::string path, vec2 frame_size);
+std::string render_get_path(int image_index);
 
 // Render functions
 void render_clear();

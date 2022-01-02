@@ -12,7 +12,7 @@ const SDL_Color COLOR_YELLOW = (SDL_Color) { .r = 255, .g = 255, .b = 0, .a = 25
 // Resources
 TTF_Font* font;
 std::vector<Image> images;
-std::vector<const char*> image_paths;
+std::vector<std::string> image_paths;
 
 // Resource management functions
 
@@ -34,15 +34,15 @@ void render_free_resources() {
     }
 }
 
-int render_load_image(const char* path) {
+int render_load_image(std::string path) {
     for(int i = 0; i < images.size(); i++) {
-        bool image_already_loaded = strcmp(path, image_paths[i]) == 0;
+        bool image_already_loaded = path == image_paths[i];
         if(image_already_loaded) {
             return i;
         }
     }
 
-    SDL_Surface* loaded_surface = IMG_Load(path);
+    SDL_Surface* loaded_surface = IMG_Load(path.c_str());
     if(loaded_surface == nullptr) {
         std::cout << "Unable to load image " << path << "! SDL Error " << IMG_GetError() << std::endl;
         return -1;
@@ -62,11 +62,15 @@ int render_load_image(const char* path) {
     return images.size() - 1;
 }
 
-int render_load_spritesheet(const char* path, vec2 frame_size) {
+int render_load_spritesheet(std::string path, vec2 frame_size) {
     int image_index = render_load_image(path);
     images[image_index].frame_size = frame_size;
 
     return image_index;
+}
+
+std::string render_get_path(int image_index) {
+    return image_paths[image_index];
 }
 
 // Rendering functions

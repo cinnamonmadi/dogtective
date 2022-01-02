@@ -1,8 +1,17 @@
 {
-    'background': './res/maps/test.png',
-    'colliders': [
-        [0, 0, 288, 80],
-        [382, 0, 258, 79],
-        [566, 80, ]
-    ],
+    "background": "res/maps/test.png",
+    "colliders": [
+        [
+            150,
+            182,
+            47,
+            47
+        ],
+        [
+            232,
+            260,
+            41,
+            37
+        ]
+    ]
 }
