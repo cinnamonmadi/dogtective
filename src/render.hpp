@@ -27,6 +27,7 @@ void render_free_resources();
 int render_load_image(std::string path);
 int render_load_spritesheet(std::string path, vec2 frame_size);
 std::string render_get_path(int image_index);
+vec2 render_get_frame_size(int image_index);
 
 // Render functions
 void render_clear();

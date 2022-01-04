@@ -1,7 +1,6 @@
 #include "render.hpp"
 #include "state.hpp"
-#include "mapstate.hpp"
-#include "mapedit.hpp"
+#include "map.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -54,11 +53,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    if(engine_edit_mode) {
-        state = new MapEditState();
-    } else {
-        state = new MapState();
-    }
+    state = new Map("./map/test.json");
 
     while(engine_running) {
         input();

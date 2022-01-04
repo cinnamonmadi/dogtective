@@ -7,17 +7,12 @@
 
 using nlohmann::json;
 
-Map::Map() {
-    camera_offset = (vec2) { .x = 0, .y = 0 };
-    player = Actor("./res/witch.png");
-}
-
-bool Map::load(std::string path) {
+Map::Map(std::string path) {
     std::ifstream map_file;
     map_file.open(path);
     if(!map_file.is_open()) {
-        std::cout << "Unable to open file!" << std::endl;
-        return false;
+        std::cout << "Unable to open map file " << path << "!" << std::endl;
+        return;
     }
     json map_json = json::parse(map_file);
     map_file.close();
@@ -34,84 +29,106 @@ bool Map::load(std::string path) {
         colliders.push_back(collider);
     }
 
-    return true;
+    for(int i = 0; i < 4; i++) {
+        direction_key_pressed[i] = false;
+    }
+    player_direction = (vec2) { .x = 0, .y = 0 };
+
+    camera_offset = (vec2) { .x = 0, .y = 0 };
+    actors.push_back(Actor("./res/witch.png"));
+    actor_player = actors.size() - 1;
+
+    actors.push_back(Actor("./res/witch.png"));
+    actors[1].position = (vec2) { .x = 100, .y = 100 };
 }
 
-bool Map::save(std::string path) {
-    json collider_arrays = json::array();
-    for(SDL_Rect collider : colliders) {
-        json collider_array = json::array();
-        collider_array.insert(collider_array.end(), collider.x);
-        collider_array.insert(collider_array.end(), collider.y);
-        collider_array.insert(collider_array.end(), collider.w);
-        collider_array.insert(collider_array.end(), collider.h);
-        collider_arrays.insert(collider_arrays.end(), collider_array);
-    }
+void Map::handle_input(SDL_Event e) {
+    if(e.type == SDL_KEYDOWN) {
+        SDL_Keycode keycode = e.key.keysym.sym;
 
-    std::cout << render_get_path(background_image) << std::endl;
-    json map_json = {
-        {"background", render_get_path(background_image)},
-        {"colliders", collider_arrays}
-    };
-    std::ofstream map_file;
-    map_file.open(path);
-    if(!map_file.is_open()) {
-        std::cout << "Unable to open file!" << std::endl;
-        return false;
-    }
-    map_file << map_json.dump(4);
-    map_file.close();
+        switch(keycode) {
+            case SDLK_ESCAPE:
+                finished = true;
+                break;
+            case SDLK_w:
+                player_direction.y = -1;
+                direction_key_pressed[DIRECTION_UP] = true;
+                break;
+            case SDLK_s:
+                player_direction.y = 1;
+                direction_key_pressed[DIRECTION_DOWN] = true;
+                break;
+            case SDLK_a:
+                player_direction.x = -1;
+                direction_key_pressed[DIRECTION_LEFT] = true;
+                break;
+            case SDLK_d:
+                player_direction.x = 1;
+                direction_key_pressed[DIRECTION_RIGHT] = true;
+                break;
+        }
+    } else if(e.type == SDL_KEYUP) {
+        SDL_Keycode keycode = e.key.keysym.sym;
 
-    return true;
+        switch(keycode) {
+            case SDLK_w:
+                if(direction_key_pressed[DIRECTION_DOWN]) {
+                    player_direction.y = 1;
+                } else {
+                    player_direction.y = 0;
+                }
+                direction_key_pressed[DIRECTION_UP] = false;
+                break;
+            case SDLK_s:
+                if(direction_key_pressed[DIRECTION_UP]) {
+                    player_direction.y = -1;
+                } else {
+                    player_direction.y = 0;
+                }
+                direction_key_pressed[DIRECTION_DOWN] = false;
+                break;
+            case SDLK_a:
+                if(direction_key_pressed[DIRECTION_RIGHT]) {
+                    player_direction.x = 1;
+                } else {
+                    player_direction.x = 0;
+                }
+                direction_key_pressed[DIRECTION_LEFT] = false;
+                break;
+            case SDLK_d:
+                if(direction_key_pressed[DIRECTION_LEFT]) {
+                    player_direction.x = -1;
+                } else {
+                    player_direction.x = 0;
+                }
+                direction_key_pressed[DIRECTION_RIGHT] = false;
+                break;
+        }
+    }
 }
 
 void Map::update(float delta) {
-    player.position += player.velocity;
-    actor_handle_collisions(player);
+    actors[actor_player].velocity = player_direction;
 
-    if(player.velocity.y > 0) {
-        player.facing_direction = DIRECTION_DOWN;
-    } else if(player.velocity.y < 0) {
-        player.facing_direction = DIRECTION_UP;
-    } else if(player.velocity.x > 0) {
-        player.facing_direction = DIRECTION_RIGHT;
-    } else if(player.velocity.x < 0) {
-        player.facing_direction = DIRECTION_LEFT;
-    }
-    player.update_sprite(delta);
-}
+    for(int i = 0; i < actors.size(); i++) {
+        actors[i].update(delta);
 
-// Ideas: we could possibly have two functions, a simple collisions function and one like the one below
-// that takes direction into account. That way we can use the simple collisions on pacing NPCs and save
-// the nicer feeling but more expensive sliding collision for the player movement
-
-void Map::actor_handle_collisions(Map::Actor& actor) {
-    for(SDL_Rect collider : colliders) {
-        if(rects_intersect(actor.get_rect(), collider)) {
-            bool x_caused = false;
-            bool y_caused = false;
-
-            actor.position -= actor.velocity;
-
-            // Recheck collision with just X movement
-            actor.position.x += actor.velocity.x;
-            if(rects_intersect(actor.get_rect(), collider)) {
-                x_caused = true;
+        SDL_Rect actor_rect = actors[i].get_rect();
+        for(SDL_Rect collider : colliders) {
+            if(rects_intersect(actor_rect, collider)) {
+                actors[i].handle_collision(collider);
+                break;
             }
-            actor.position.x -= actor.velocity.x;
+        }
 
-            // Recheck collision with just Y movement
-            actor.position.y += actor.velocity.y;
-            if(rects_intersect(actor.get_rect(), collider)) {
-                y_caused = true;
+        for(int j = 0; j < actors.size(); j++) {
+            if(i == j) {
+                continue;
             }
-            actor.position.y -= actor.velocity.y;
 
-            if(!x_caused) {
-                actor.position.x += actor.velocity.x;
-            }
-            if(!y_caused){
-                actor.position.y += actor.velocity.y;
+            if(rects_intersect(actor_rect, actors[j].get_rect())) {
+                actors[i].handle_collision(actors[j].get_rect());
+                break;
             }
         }
     }
@@ -119,60 +136,10 @@ void Map::actor_handle_collisions(Map::Actor& actor) {
 
 void Map::render() {
     render_image(background_image, camera_offset.inverse());
-    player.render(camera_offset);
+    for(Actor actor : actors) {
+        actor.render(camera_offset);
+    }
 }
 
 // Actor functions
 
-const float ACTOR_FRAME_DURATION = 0.2f;
-
-Map::Actor::Actor() {
-}
-
-Map::Actor::Actor(std::string image_path) {
-    image_index = render_load_spritesheet(image_path, (vec2) { .x = 16, .y = 16 });
-    facing_direction = DIRECTION_DOWN;
-    position = (vec2) { .x = 0, .y = 0 };
-    velocity = (vec2) { .x = 0,. y = 0 };
-    animation_timer = 0;
-    animation_frame = 0;
-
-    update_sprite(0);
-}
-
-SDL_Rect Map::Actor::get_rect() const {
-    // TODO do something better for the width and height here. Do they have sprite based colliders? Or do we define them somewhere?
-    return (SDL_Rect) { .x = position.x, .y = position.y, .w = 16, .h = 16 };
-}
-
-void Map::Actor::update_sprite(float delta) {
-    if(velocity.x == 0 && velocity.y == 0) {
-        animation_timer = ACTOR_FRAME_DURATION;
-        animation_frame = 0;
-    } else {
-        animation_timer -= delta;
-        if(animation_timer <= 0) {
-            animation_timer += ACTOR_FRAME_DURATION;
-            animation_frame = (animation_frame + 1) % 4;
-        }
-    }
-}
-
-void Map::Actor::render(vec2 camera_offset) {
-    vec2 sprite_frame;
-    switch(facing_direction) {
-        case DIRECTION_DOWN:
-            sprite_frame.y = 0;
-            break;
-        case DIRECTION_UP:
-            sprite_frame.y = 1;
-            break;
-        default:
-            sprite_frame.y = 2;
-            break;
-    }
-    sprite_frame.x = animation_frame;
-    bool flipped = facing_direction == DIRECTION_LEFT;
-
-    render_image_frame(image_index, sprite_frame, position - camera_offset, flipped);
-}

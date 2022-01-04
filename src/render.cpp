@@ -73,6 +73,10 @@ std::string render_get_path(int image_index) {
     return image_paths[image_index];
 }
 
+vec2 render_get_frame_size(int image_index) {
+    return images[image_index].frame_size;
+}
+
 // Rendering functions
 
 void render_clear() {
