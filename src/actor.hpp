@@ -13,16 +13,18 @@ typedef enum Direction {
 
 class Actor {
     public:
-        Actor(std::string path);
+        Actor(std::string name, std::string path);
         SDL_Rect get_rect() const;
         void update(float delta);
         void handle_collision(const SDL_Rect& collider);
         void render(const vec2& camera_offset);
 
+        std::string name;
         int image_index;
         Direction facing_direction;
         vec2 position;
         vec2 velocity;
+        vec2 target;
         int animation_frame;
     private:
         void update_sprite(float delta);

@@ -3,12 +3,15 @@
 #include "render.hpp"
 
 const float ACTOR_FRAME_DURATION = 0.2f;
+const int SPEED = 1;
 
-Actor::Actor(std::string image_path) {
+Actor::Actor(std::string name, std::string image_path) {
+    this->name = name;
     image_index = render_load_spritesheet(image_path, (vec2) { .x = 16, .y = 16 });
     facing_direction = DIRECTION_DOWN;
     position = (vec2) { .x = 0, .y = 0 };
     velocity = (vec2) { .x = 0,. y = 0 };
+    target = (vec2) { .x = -1, .y = -1 };
     animation_timer = 0;
     animation_frame = 0;
 }
@@ -19,6 +22,24 @@ SDL_Rect Actor::get_rect() const {
 }
 
 void Actor::update(float delta) {
+    if(target.x != -1) {
+        if(position.x < target.x) {
+            velocity.x = SPEED;
+        } else if(position.x > target.x) {
+            velocity.x = -SPEED;
+        } else {
+            velocity.x = 0;
+        }
+
+        if(position.y < target.y) {
+            velocity.y = SPEED;
+        } else if(position.y > target.y) {
+            velocity.y = -SPEED;
+        } else {
+            velocity.y = 0;
+        }
+    }
+
     position += velocity;
 
     if(velocity.y > 0) {

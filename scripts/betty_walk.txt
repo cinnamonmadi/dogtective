@@ -1,0 +1,9 @@
+move betty 100 150
+waitfor betty
+turn betty left
+delay 0.5
+turn betty right
+delay 0.5
+move betty 100 100
+waitfor betty
+loop

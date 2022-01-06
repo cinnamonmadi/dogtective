@@ -1,17 +1,17 @@
 {
     "background": "res/maps/test.png",
     "colliders": [
-        [
-            150,
-            182,
-            47,
-            47
-        ],
-        [
-            232,
-            260,
-            41,
-            37
-        ]
+        [ 150, 182, 47, 47 ],
+        [ 232, 260, 41, 37 ]
+    ],
+    "actors": [
+        {
+            "name": "betty",
+            "image": "./res/witch.png",
+            "position": [100, 100]
+        }
+    ],
+    "scripts": [
+        "scripts/betty_walk.txt"
     ]
 }
