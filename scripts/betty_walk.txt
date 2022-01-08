@@ -6,4 +6,3 @@ turn betty right
 delay 0.5
 move betty 100 100
 waitfor betty
-loop

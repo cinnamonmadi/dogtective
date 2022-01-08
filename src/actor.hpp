@@ -3,6 +3,7 @@
 #include "vector.hpp"
 #include <SDL2/SDL.h>
 #include <string>
+#include <vector>
 
 typedef enum Direction {
     DIRECTION_UP,
@@ -11,8 +12,16 @@ typedef enum Direction {
     DIRECTION_LEFT
 } Direction;
 
+Direction get_direction_from_name(std::string name);
+
 class Actor {
     public:
+        typedef struct PathNode {
+            vec2 position;
+            Direction direction;
+            float wait_duration;
+        } PathNode;
+
         Actor(std::string name, std::string path);
         SDL_Rect get_rect() const;
         void update(float delta);
@@ -20,15 +29,22 @@ class Actor {
         void render(const vec2& camera_offset);
 
         std::string name;
+
         int image_index;
+        int animation_frame;
+
         Direction facing_direction;
         vec2 position;
         vec2 velocity;
-        vec2 target;
-        int animation_frame;
+
+        std::vector<PathNode> path;
+        std::string dialog;
     private:
         void update_sprite(float delta);
 
         float animation_timer;
+
+        int path_index;
+        float path_wait_timer;
 };
 

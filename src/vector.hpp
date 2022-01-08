@@ -36,6 +36,12 @@ typedef struct vec2 {
             return (vec2) { .x = (int)(x / length), .y = (int)(y / length) };
         }
     }
+    inline bool operator==(const vec2& other) const {
+        return x == other.x && y == other.y;
+    }
+    inline bool operator!=(const vec2& other) const {
+        return !(*this == other);
+    }
 } vec2;
 
 inline std::ostream& operator<<(std::ostream& os, const vec2& v) {

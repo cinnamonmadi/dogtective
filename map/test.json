@@ -8,10 +8,17 @@
         {
             "name": "betty",
             "image": "./res/witch.png",
-            "position": [100, 100]
+            "position": [100, 100],
+            "dialog": "Hello friends!",
+            "path": [
+                { "position": [200, 100], "direction": "right", "wait_duration": 0 },
+                { "position": [200, 200], "direction": "down", "wait_duration": 2 },
+                { "position": [200, 100], "direction": "up", "wait_duration": 0 },
+                { "position": [100, 100], "direction": "left", "wait_duration": 0 }
+            ]
         }
     ],
     "scripts": [
-        "scripts/betty_walk.txt"
+
     ]
 }

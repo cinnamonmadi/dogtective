@@ -2,6 +2,20 @@
 
 #include "render.hpp"
 
+Direction get_direction_from_name(std::string name) {
+    static const std::string direction_names[4] = {"up", "right", "down", "left"};
+    for(int i = 0; i < 4; i++) {
+        if(name == direction_names[i]) {
+            return (Direction)i;
+        }
+    }
+
+    std::cout << "Error in get_direction_from_name()! Direction " << name << " is not a real direction!" << std::endl;
+    return DIRECTION_UP;
+}
+
+// Actor functions
+
 const float ACTOR_FRAME_DURATION = 0.2f;
 const int SPEED = 1;
 
@@ -11,9 +25,14 @@ Actor::Actor(std::string name, std::string image_path) {
     facing_direction = DIRECTION_DOWN;
     position = (vec2) { .x = 0, .y = 0 };
     velocity = (vec2) { .x = 0,. y = 0 };
-    target = (vec2) { .x = -1, .y = -1 };
+
+    path_index = 0;
+    path_wait_timer = 0;
+
     animation_timer = 0;
     animation_frame = 0;
+
+    dialog = "";
 }
 
 SDL_Rect Actor::get_rect() const {
@@ -22,21 +41,31 @@ SDL_Rect Actor::get_rect() const {
 }
 
 void Actor::update(float delta) {
-    if(target.x != -1) {
-        if(position.x < target.x) {
-            velocity.x = SPEED;
-        } else if(position.x > target.x) {
-            velocity.x = -SPEED;
-        } else {
-            velocity.x = 0;
-        }
+    if(path.size() != 0) {
+        if(position != path[path_index].position) {
+            if(position.x < path[path_index].position.x) {
+                velocity.x = SPEED;
+            } else if(position.x > path[path_index].position.x) {
+                velocity.x = -SPEED;
+            } else {
+                velocity.x = 0;
+            }
 
-        if(position.y < target.y) {
-            velocity.y = SPEED;
-        } else if(position.y > target.y) {
-            velocity.y = -SPEED;
+            if(position.y < path[path_index].position.y) {
+                velocity.y = SPEED;
+            } else if(position.y > path[path_index].position.y) {
+                velocity.y = -SPEED;
+            } else {
+                velocity.y = 0;
+            }
+        } else if(path_wait_timer > 0) {
+            velocity = (vec2) { .x = 0, .y = 0 };
+            path_wait_timer -= delta;
+            facing_direction = path[path_index].direction;
         } else {
-            velocity.y = 0;
+            velocity = (vec2) { .x = 0, .y = 0 };
+            path_index = (path_index + 1) % path.size();
+            path_wait_timer = path[path_index].wait_duration;
         }
     }
 
