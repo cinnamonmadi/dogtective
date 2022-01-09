@@ -10,7 +10,7 @@ const SDL_Color COLOR_BLACK = (SDL_Color) { .r = 0, .g = 0, .b = 0, .a = 0 };
 const SDL_Color COLOR_YELLOW = (SDL_Color) { .r = 255, .g = 255, .b = 0, .a = 255 };
 
 // Resources
-TTF_Font* font;
+TTF_Font** fonts;
 std::vector<Image> images;
 std::vector<std::string> image_paths;
 int dialog_box_image;
@@ -18,11 +18,9 @@ int dialog_box_image;
 // Resource management functions
 
 bool render_load_resources() {
-    font = TTF_OpenFont("./res/hack.ttf", 10);
-    if(!font) {
-        std::cout << "Unable to open font!" << TTF_GetError() << std::endl;
-        return false;
-    }
+    fonts = new TTF_Font*[FONT_COUNT];
+    render_load_font(FONT_HACK, "./res/hack.ttf", 10);
+    render_load_font(FONT_HELVETICA, "./res/helvetica_mono.ttf", 14);
 
     dialog_box_image = render_load_spritesheet("./res/frame.png", (vec2){ .x = 8, .y = 8 });
 
@@ -30,10 +28,21 @@ bool render_load_resources() {
 }
 
 void render_free_resources() {
-    TTF_CloseFont(font);
+    for(int i = 0; i < FONT_COUNT; i++) {
+        TTF_CloseFont(fonts[i]);
+    }
+    delete [] fonts;
 
     for(int i = 0; i < images.size(); i++) {
         SDL_DestroyTexture(images[i].texture);
+    }
+}
+
+void render_load_font(Font font, std::string path, int size) {
+    fonts[font] = TTF_OpenFont(path.c_str(), size);
+    if(!fonts[font]) {
+        std::cout << "Unable to open font!" << TTF_GetError() << std::endl;
+        return;
     }
 }
 
@@ -91,8 +100,8 @@ void render_present() {
     SDL_RenderPresent(renderer);
 }
 
-Image* render_create_text_image(const char* text, SDL_Color color) {
-    SDL_Surface* text_surface = TTF_RenderText_Solid(font, text, color);
+Image* render_create_text_image(const char* text, Font font, SDL_Color color) {
+    SDL_Surface* text_surface = TTF_RenderText_Solid(fonts[font], text, color);
     if(text_surface == nullptr) {
         std::cout << "Unable to render text to surface! SDL Error " << TTF_GetError() << std::endl;
         return nullptr;
@@ -115,8 +124,8 @@ Image* render_create_text_image(const char* text, SDL_Color color) {
     return text_image;
 }
 
-void render_text(const char* text, SDL_Color color, vec2 position) {
-    Image* text_image = render_create_text_image(text, color);
+void render_text(const char* text, Font font, SDL_Color color, vec2 position) {
+    Image* text_image = render_create_text_image(text, font, color);
 
     SDL_Rect source_rect = (SDL_Rect){ .x = 0, .y = 0, .w = text_image->size.x, .h = text_image->size.y };
     SDL_Rect dest_rect = (SDL_Rect){ .x = position.x, .y = position.y, .w = text_image->size.x, .h = text_image->size.y };
@@ -128,6 +137,21 @@ void render_text(const char* text, SDL_Color color, vec2 position) {
     }
 
     SDL_RenderCopy(renderer, text_image->texture, &source_rect, &dest_rect);
+    SDL_DestroyTexture(text_image->texture);
+    delete text_image;
+}
+
+void render_text_centered(const char* text, Font font, SDL_Color color, SDL_Rect rect) {
+    Image* text_image = render_create_text_image(text, font, color);
+
+    SDL_Rect source_rect = (SDL_Rect) { .x = 0, .y = 0, .w = text_image->size.x, .h = text_image->size.y };
+    SDL_Rect dst_rect = (SDL_Rect) {
+        .x = rect.x + (rect.w / 2) - (text_image->size.x / 2),
+        .y = rect.y + (rect.h / 2) - (text_image->size.y / 2),
+        .w = text_image->size.x,
+        .h = text_image->size.y };
+
+    SDL_RenderCopy(renderer, text_image->texture, &source_rect, &dst_rect);
     SDL_DestroyTexture(text_image->texture);
     delete text_image;
 }

@@ -7,6 +7,8 @@
 
 using nlohmann::json;
 
+const float DIALOG_CHAR_SPEED = 0.05;
+
 Scene::Scene(std::string path) {
     std::ifstream map_file;
     map_file.open(path);
@@ -81,6 +83,8 @@ Scene::Scene(std::string path) {
     player_direction = (vec2) { .x = 0, .y = 0 };
 
     camera_offset = (vec2) { .x = 0, .y = 0 };
+
+    dialog_open = false;
 }
 
 /*
@@ -177,7 +181,15 @@ void Scene::handle_input(SDL_Event e) {
                 direction_key_pressed[DIRECTION_RIGHT] = true;
                 break;
             case SDLK_SPACE:
-                player_interact();
+                if(dialog_open) {
+                    if(dialog_index != dialog_text.length()) {
+                        dialog_index = dialog_text.length();
+                    } else {
+                        dialog_open = false;
+                    }
+                } else {
+                    player_interact();
+                }
                 break;
         }
     } else if(e.type == SDL_KEYUP) {
@@ -249,14 +261,33 @@ void Scene::player_interact() {
         }
 
         if(rects_intersect(interact_scan_rect, actors[i].get_rect())) {
-            std::cout << actors[i].dialog << std::endl;
+            open_dialog(actors[i].name, actors[i].dialog);
             return;
         }
     }
 }
 
+void Scene::open_dialog(std::string speaker, std::string text) {
+    dialog_speaker = speaker;
+    dialog_text = text;
+    dialog_index = 1;
+    dialog_index_timer = DIALOG_CHAR_SPEED;
+    dialog_open = true;
+}
+
 void Scene::update(float delta) {
-    actors[actor_player].velocity = player_direction;
+    if(dialog_open) {
+        actors[actor_player].velocity = (vec2) { .x = 0, .y = 0 };
+        if(dialog_index != dialog_text.length()) {
+            dialog_index_timer -= delta;
+            if(dialog_index_timer <= 0) {
+                dialog_index++;
+                dialog_index_timer = DIALOG_CHAR_SPEED;
+            }
+        }
+    } else {
+        actors[actor_player].velocity = player_direction;
+    }
 
     /*
     for(int i = 0; i < scripts.size(); i++) {
@@ -341,8 +372,55 @@ void Scene::render() {
     for(Actor actor : actors) {
         actor.render(camera_offset);
     }
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_Rect bg = (SDL_Rect) { .x = 10, .y = 10, .w = 100, .h = 100 };
-    SDL_RenderFillRect(renderer, &bg);
-    render_dialog_box((SDL_Rect) { .x = 10, .y = 10, .w = 100, .h = 100 });
+    if(dialog_open) {
+        render_dialog(dialog_speaker, dialog_text.substr(0, dialog_index));
+    }
+}
+
+void Scene::render_dialog(std::string speaker, std::string text) {
+    static const int ROW_CHAR_LENGTH = 37;
+    static const SDL_Rect DIALOG_BOX_RECT = (SDL_Rect) { .x = 0, .y = 130, .w = 320, .h = 50 };
+    static const vec2 DIALOG_PADDING = (vec2) { .x = 10, .y = 2 };
+    static const int DIALOG_LINE_HEIGHT = 14;
+    static const SDL_Rect SPEAKER_BOX_RECT = (SDL_Rect) { .x = 0, .y = 115, .w = 80, .h = 20 };
+    static const SDL_Rect SPEAKER_TEXT_CENTER_RECT = (SDL_Rect) { .x = 0, .y = 114, .w = 80, .h = 20 };
+
+    std::string rows[3];
+
+    int row_index = 0;
+    while(row_index != 3 && text.length() != 0) {
+        std::size_t space_index = text.find(" ");
+        std::string next_word;
+
+        if(space_index == std::string::npos) {
+            next_word = text;
+            text = "";
+        } else {
+            next_word = text.substr(0, space_index);
+            text = text.substr(space_index + 1);
+        }
+
+        if(rows[row_index].length() + next_word.length() + 1 > ROW_CHAR_LENGTH) {
+            row_index++;
+        }
+        if(row_index != 3) {
+            if(rows[row_index].length() != 0) {
+                rows[row_index] += " ";
+            }
+            rows[row_index] += next_word;
+        }
+    }
+
+    render_dialog_box(DIALOG_BOX_RECT);
+    for(int i = 0; i < 3; i++) {
+        if(rows[i].length() == 0) {
+            continue;
+        }
+        render_text(rows[i].c_str(), FONT_HELVETICA, COLOR_BLACK,
+                (vec2) {
+                .x = DIALOG_BOX_RECT.x + DIALOG_PADDING.x,
+                .y = DIALOG_BOX_RECT.y + DIALOG_PADDING.y + (DIALOG_LINE_HEIGHT * i) });
+    }
+    render_dialog_box(SPEAKER_BOX_RECT);
+    render_text_centered(speaker.c_str(), FONT_HELVETICA, COLOR_BLACK, SPEAKER_TEXT_CENTER_RECT);
 }
