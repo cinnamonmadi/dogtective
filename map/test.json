@@ -9,7 +9,11 @@
             "name": "Betty",
             "image": "./res/witch.png",
             "position": [100, 100],
-            "dialog": "Hello friends!",
+            "dialog" : [
+                { "speaker": "Betty", "text": "Hello friend!" },
+                { "speaker": "Dogtective", "text": "Wait, who are you?" },
+                { "speaker": "Betty", "text": "Eh? You mean you don't recognize me?" }
+            ],
             "path": [
             ]
         }

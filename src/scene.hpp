@@ -62,7 +62,7 @@ class Scene : public IState {
         // int get_actor_from_name(std::string name);
         // void script_execute(int script_index, float delta);
         void player_interact();
-        void open_dialog(std::string speaker, std::string text);
+        void open_dialog(const std::vector<DialogLine>& dialog_lines);
 
         void render_dialog(std::string speaker, std::string text);
 
@@ -76,8 +76,7 @@ class Scene : public IState {
         std::vector<Actor> actors;
         int actor_player;
 
-        std::string dialog_speaker;
-        std::string dialog_text;
+        std::vector<DialogLine> dialog_queue;
         std::size_t dialog_index;
         float dialog_index_timer;
         bool dialog_open;

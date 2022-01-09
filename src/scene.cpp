@@ -45,7 +45,12 @@ Scene::Scene(std::string path) {
             .y = actor_json["position"][1].get<int>()
         };
 
-        new_actor.dialog = actor_json["dialog"].get<std::string>();
+        for(json dialog_json : actor_json["dialog"]) {
+            new_actor.dialog.push_back((DialogLine) {
+                .speaker = dialog_json["speaker"].get<std::string>(),
+                .text = dialog_json["text"].get<std::string>()
+            });
+        }
 
         if(actor_json.contains("path")) {
             for(json path_json : actor_json["path"]) {
@@ -182,10 +187,15 @@ void Scene::handle_input(SDL_Event e) {
                 break;
             case SDLK_SPACE:
                 if(dialog_open) {
-                    if(dialog_index != dialog_text.length()) {
-                        dialog_index = dialog_text.length();
+                    if(dialog_index != dialog_queue[0].text.length()) {
+                        dialog_index = dialog_queue[0].text.length();
                     } else {
-                        dialog_open = false;
+                        dialog_queue.erase(dialog_queue.begin());
+                        if(dialog_queue.empty()) {
+                            dialog_open = false;
+                        } else {
+                            dialog_index = 1;
+                        }
                     }
                 } else {
                     player_interact();
@@ -261,15 +271,17 @@ void Scene::player_interact() {
         }
 
         if(rects_intersect(interact_scan_rect, actors[i].get_rect())) {
-            open_dialog(actors[i].name, actors[i].dialog);
+            open_dialog(actors[i].dialog);
             return;
         }
     }
 }
 
-void Scene::open_dialog(std::string speaker, std::string text) {
-    dialog_speaker = speaker;
-    dialog_text = text;
+void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
+    dialog_queue.clear();
+    for(DialogLine dialog_line : dialog_lines) {
+        dialog_queue.push_back(dialog_line);
+    }
     dialog_index = 1;
     dialog_index_timer = DIALOG_CHAR_SPEED;
     dialog_open = true;
@@ -278,7 +290,8 @@ void Scene::open_dialog(std::string speaker, std::string text) {
 void Scene::update(float delta) {
     if(dialog_open) {
         actors[actor_player].velocity = (vec2) { .x = 0, .y = 0 };
-        if(dialog_index != dialog_text.length()) {
+
+        if(dialog_index != dialog_queue[0].text.length()) {
             dialog_index_timer -= delta;
             if(dialog_index_timer <= 0) {
                 dialog_index++;
@@ -373,7 +386,7 @@ void Scene::render() {
         actor.render(camera_offset);
     }
     if(dialog_open) {
-        render_dialog(dialog_speaker, dialog_text.substr(0, dialog_index));
+        render_dialog(dialog_queue[0].speaker, dialog_queue[0].text.substr(0, dialog_index));
     }
 }
 
@@ -421,6 +434,8 @@ void Scene::render_dialog(std::string speaker, std::string text) {
                 .x = DIALOG_BOX_RECT.x + DIALOG_PADDING.x,
                 .y = DIALOG_BOX_RECT.y + DIALOG_PADDING.y + (DIALOG_LINE_HEIGHT * i) });
     }
-    render_dialog_box(SPEAKER_BOX_RECT);
-    render_text_centered(speaker.c_str(), FONT_HELVETICA, COLOR_BLACK, SPEAKER_TEXT_CENTER_RECT);
+    if(speaker.length() != 0) {
+        render_dialog_box(SPEAKER_BOX_RECT);
+        render_text_centered(speaker.c_str(), FONT_HELVETICA, COLOR_BLACK, SPEAKER_TEXT_CENTER_RECT);
+    }
 }

@@ -5,6 +5,11 @@
 #include <string>
 #include <vector>
 
+typedef struct DialogLine {
+    std::string speaker;
+    std::string text;
+} DialogLine;
+
 typedef enum Direction {
     DIRECTION_UP,
     DIRECTION_RIGHT,
@@ -38,7 +43,7 @@ class Actor {
         vec2 velocity;
 
         std::vector<PathNode> path;
-        std::string dialog;
+        std::vector<DialogLine> dialog;
     private:
         void update_sprite(float delta);
 
