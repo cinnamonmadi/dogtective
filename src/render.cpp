@@ -13,6 +13,7 @@ const SDL_Color COLOR_YELLOW = (SDL_Color) { .r = 255, .g = 255, .b = 0, .a = 25
 TTF_Font* font;
 std::vector<Image> images;
 std::vector<std::string> image_paths;
+int dialog_box_image;
 
 // Resource management functions
 
@@ -22,6 +23,8 @@ bool render_load_resources() {
         std::cout << "Unable to open font!" << TTF_GetError() << std::endl;
         return false;
     }
+
+    dialog_box_image = render_load_spritesheet("./res/frame.png", (vec2){ .x = 8, .y = 8 });
 
     return true;
 }
@@ -178,4 +181,79 @@ void render_image_frame(int image_index, vec2 frame, vec2 position, bool flipped
     }
 
     SDL_RenderCopyEx(renderer, image.texture, &src_rect, &dst_rect, 0, NULL, render_flip);
+}
+
+void render_image_frame_stretched(int image_index, vec2 frame, SDL_Rect dst_rect) {
+    Image& image = images[dialog_box_image];
+
+    SDL_Rect src_rect = (SDL_Rect) {
+        .x = frame.x * image.frame_size.x,
+        .y = frame.y * image.frame_size.y,
+        .w = image.frame_size.x,
+        .h = image.frame_size.y,
+    };
+
+    SDL_Rect screen_rect = (SDL_Rect) { .x = 0, .y = 0, .w = SCREEN_WIDTH, .h = SCREEN_HEIGHT };
+    if(!rects_intersect(dst_rect, screen_rect)) {
+        return;
+    }
+
+    SDL_RenderCopy(renderer, image.texture, &src_rect, &dst_rect);
+}
+
+void render_dialog_box(SDL_Rect dst_rect) {
+    Image& image = images[dialog_box_image];
+
+    render_image_frame(dialog_box_image,  // top left corner
+            (vec2) { .x = 0, .y = 0 },
+            (vec2) { .x = dst_rect.x, .y = dst_rect.y },
+            false);
+    render_image_frame(dialog_box_image, // top right corner
+            (vec2) { .x = 2, .y = 0 },
+            (vec2) { .x = dst_rect.x + dst_rect.w - image.frame_size.x, .y = dst_rect.y },
+            false);
+    render_image_frame(dialog_box_image, // bottom left corner
+            (vec2) { .x = 0, .y = 2 },
+            (vec2) { .x = dst_rect.x, .y = dst_rect.y + dst_rect.h - image.frame_size.y },
+            false);
+    render_image_frame(dialog_box_image, // bottom right corner
+            (vec2) { .x = 2, .y = 2 },
+            (vec2) { .x = dst_rect.x + dst_rect.w - image.frame_size.x, .y = dst_rect.y + dst_rect.h - image.frame_size.y },
+            false);
+    render_image_frame_stretched(dialog_box_image, // middle left side
+            (vec2) { .x = 0, .y = 1 },
+            (SDL_Rect) {
+                .x = dst_rect.x,
+                .y = dst_rect.y + image.frame_size.y,
+                .w = image.frame_size.x,
+                .h = dst_rect.h - (image.frame_size.y * 2) });
+    render_image_frame_stretched(dialog_box_image, // middle right side
+            (vec2) { .x = 2, .y = 1 },
+            (SDL_Rect) {
+                .x = dst_rect.x + dst_rect.w - image.frame_size.x,
+                .y = dst_rect.y + image.frame_size.y,
+                .w = image.frame_size.x,
+                .h = dst_rect.h - (image.frame_size.y * 2) });
+    render_image_frame_stretched(dialog_box_image, // top middle side
+            (vec2) { .x = 1, .y = 0 },
+            (SDL_Rect) {
+                .x = dst_rect.x + image.frame_size.x,
+                .y = dst_rect.y,
+                .w = dst_rect.w - (image.frame_size.x * 2),
+                .h = image.frame_size.y  });
+    render_image_frame_stretched(dialog_box_image, // bottom middle side
+            (vec2) { .x = 1, .y = 2 },
+            (SDL_Rect) {
+                .x = dst_rect.x + image.frame_size.x,
+                .y = dst_rect.y + dst_rect.h - image.frame_size.y,
+                .w = dst_rect.w - (image.frame_size.x * 2),
+                .h = image.frame_size.y  });
+    render_image_frame_stretched(dialog_box_image, // middle
+            (vec2) { .x = 1, .y = 1 },
+            (SDL_Rect) {
+                .x = dst_rect.x + image.frame_size.x,
+                .y = dst_rect.y + image.frame_size.y,
+                .w = dst_rect.w - (image.frame_size.x * 2),
+                .h = dst_rect.h - (image.frame_size.y * 2)
+            });
 }

@@ -341,4 +341,8 @@ void Scene::render() {
     for(Actor actor : actors) {
         actor.render(camera_offset);
     }
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_Rect bg = (SDL_Rect) { .x = 10, .y = 10, .w = 100, .h = 100 };
+    SDL_RenderFillRect(renderer, &bg);
+    render_dialog_box((SDL_Rect) { .x = 10, .y = 10, .w = 100, .h = 100 });
 }
