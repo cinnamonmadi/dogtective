@@ -9,7 +9,6 @@
 
 class Scene : public IState {
     public:
-        /*
         typedef enum ScriptType {
             SCRIPT_MOVE,
             SCRIPT_WAITFOR,
@@ -48,10 +47,8 @@ class Scene : public IState {
             std::vector<ScriptLine> lines;
             std::vector<std::string> required_actors;
             int current_line;
-
-            Script(std::string path);
+            bool playing;
         } Script;
-        */
 
         Scene(std::string path);
         void handle_input(SDL_Event e);
@@ -59,11 +56,21 @@ class Scene : public IState {
         void render();
 
     private:
-        // int get_actor_from_name(std::string name);
-        // void script_execute(int script_index, float delta);
+        // Player
+        void player_handle_input(float delta);
         void player_interact();
-        void open_dialog(const std::vector<DialogLine>& dialog_lines);
 
+        // Actors
+        void actor_update(int actor_index, float delta);
+
+        // Scripts
+        int get_actor_from_name(std::string name);
+        void script_begin(int script_index);
+        void script_finish(int script_index);
+        void script_execute(int script_index, float delta);
+
+        // Dialog
+        void open_dialog(const std::vector<DialogLine>& dialog_lines);
         void render_dialog(std::string speaker, std::string text);
 
         bool direction_key_pressed[4];
@@ -81,5 +88,5 @@ class Scene : public IState {
         float dialog_index_timer;
         bool dialog_open;
 
-        // std::vector<Script> scripts;
+        std::vector<Script> scripts;
 };

@@ -29,7 +29,10 @@ class Actor {
 
         Actor(std::string name, std::string path);
         SDL_Rect get_rect() const;
+        bool has_target() const;
+
         void update(float delta);
+        void set_velocity_towards(vec2 target_position);
         void handle_collision(const SDL_Rect& collider);
         void render(const vec2& camera_offset);
 
@@ -44,6 +47,9 @@ class Actor {
 
         std::vector<PathNode> path;
         std::vector<DialogLine> dialog;
+
+        bool in_scene;
+        vec2 target;
     private:
         void update_sprite(float delta);
 

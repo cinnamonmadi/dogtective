@@ -32,7 +32,8 @@ Actor::Actor(std::string name, std::string image_path) {
     animation_timer = 0;
     animation_frame = 0;
 
-    dialog = "";
+    in_scene = false;
+    target = (vec2) { .x = -1, .y = -1 };
 }
 
 SDL_Rect Actor::get_rect() const {
@@ -40,24 +41,25 @@ SDL_Rect Actor::get_rect() const {
     return (SDL_Rect) { .x = position.x, .y = position.y, .w = frame_size.x, .h = frame_size.y };
 }
 
-void Actor::update(float delta) {
-    if(path.size() != 0) {
-        if(position != path[path_index].position) {
-            if(position.x < path[path_index].position.x) {
-                velocity.x = SPEED;
-            } else if(position.x > path[path_index].position.x) {
-                velocity.x = -SPEED;
-            } else {
-                velocity.x = 0;
-            }
+bool Actor::has_target() const {
+    return target.x != -1;
+}
 
-            if(position.y < path[path_index].position.y) {
-                velocity.y = SPEED;
-            } else if(position.y > path[path_index].position.y) {
-                velocity.y = -SPEED;
+void Actor::update(float delta) {
+    if(in_scene) {
+        if(has_target()) {
+            if(position.x == target.x && position.y == target.y) {
+                target = (vec2) { .x = -1, .y = -1 };
+                velocity = (vec2) { .x = 0, .y = 0 };
             } else {
-                velocity.y = 0;
+                set_velocity_towards(target);
             }
+        } else {
+            velocity = (vec2) { .x = 0, .y = 0 };
+        }
+    } else if(path.size() != 0) {
+        if(position != path[path_index].position) {
+            set_velocity_towards(path[path_index].position);
         } else if(path_wait_timer > 0) {
             velocity = (vec2) { .x = 0, .y = 0 };
             path_wait_timer -= delta;
@@ -81,6 +83,24 @@ void Actor::update(float delta) {
         facing_direction = DIRECTION_LEFT;
     }
     update_sprite(delta);
+}
+
+void Actor::set_velocity_towards(vec2 target_position) {
+    if(position.x < target_position.x) {
+        velocity.x = SPEED;
+    } else if(position.x > target_position.x) {
+        velocity.x = -SPEED;
+    } else {
+        velocity.x = 0;
+    }
+
+    if(position.y < target_position.y) {
+        velocity.y = SPEED;
+    } else if(position.y > target_position.y) {
+        velocity.y = -SPEED;
+    } else {
+        velocity.y = 0;
+    }
 }
 
 void Actor::handle_collision(const SDL_Rect& collider) {

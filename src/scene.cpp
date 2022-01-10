@@ -70,16 +70,48 @@ Scene::Scene(std::string path) {
 
     // Create player
     actors.push_back(Actor("player", "./res/witch.png"));
-    // actor_player = get_actor_from_name("player");
     actor_player = actors.size() - 1;
 
     // Load scripts
-    /*
     json script_jsons = map_json["scripts"];
     for(json script_json : script_jsons) {
-        scripts.push_back(script_json.get<std::string>());
+        Script new_script;
+
+        for(json required_actor : script_json["requires"]) {
+            new_script.required_actors.push_back(required_actor.get<std::string>());
+        }
+        for(json script_line_json : script_json["lines"]) {
+            ScriptLine new_line;
+            std::string line_type = script_line_json["type"].get<std::string>();
+
+            // Parse the line
+            if(line_type == "move") {
+                new_line.type = SCRIPT_MOVE;
+                new_line.move.actor = script_line_json["actor"].get<std::string>();
+                new_line.move.target = (vec2) {
+                    .x = script_line_json["position"][0].get<int>(),
+                    .y = script_line_json["position"][1].get<int>(),
+                };
+            } else if(line_type == "waitfor") {
+                new_line.type = SCRIPT_WAITFOR;
+                new_line.waitfor.actor = script_line_json["actor"].get<std::string>();
+            } else if(line_type == "turn") {
+                new_line.type = SCRIPT_TURN;
+                new_line.turn.actor = script_line_json["actor"].get<std::string>();
+                new_line.turn.direction = get_direction_from_name(script_line_json["direction"].get<std::string>());
+            } else if(line_type == "delay") {
+                new_line.type = SCRIPT_DELAY;
+                new_line.delay.duration = script_line_json["duration"].get<float>();
+                new_line.delay.timer = new_line.delay.duration;
+            }
+
+            new_script.lines.push_back(new_line);
+        }
+
+        new_script.playing = false;
+        new_script.current_line = 0;
+        scripts.push_back(new_script);
     }
-    */
 
     // Finalize map init
     for(int i = 0; i < 4; i++) {
@@ -91,75 +123,6 @@ Scene::Scene(std::string path) {
 
     dialog_open = false;
 }
-
-/*
-Scene::Script::Script(std::string path) {
-    // Used to turn the parsed text into one of the four direction indexes
-    static std::string direction_names[4] = { "up", "right", "down", "left" };
-
-    // Load the script file
-    std::ifstream script_file;
-    script_file.open(path);
-    if(!script_file.is_open()) {
-        std::cout << "Unable to open script file " << path << std::endl;
-        return;
-    }
-
-    // Read the file line by line
-    std::string script_line;
-    while(getline(script_file, script_line)) {
-        ScriptLine new_line;
-
-        // Split the line by spaces
-        std::string to_parse = script_line;
-        std::vector<std::string> parts;
-        while(to_parse.length() != 0) {
-            std::size_t space_index = to_parse.find(" ");
-            if(space_index == std::string::npos) {
-                parts.push_back(to_parse);
-                to_parse = "";
-            } else {
-                parts.push_back(to_parse.substr(0, space_index));
-                to_parse = to_parse.substr(space_index + 1);
-            }
-        }
-
-        // Parse the line
-        if(parts[0] == "require") {
-            required_actors.push_back(parts[1]);
-            continue; // Continue to avoid pushing back a line for this command
-        }else if(parts[0] == "move") {
-            new_line.type = SCRIPT_MOVE;
-            new_line.move.actor = parts[1];
-            new_line.move.target = (vec2) {
-                .x = std::stoi(parts[2]),
-                .y = std::stoi(parts[3])
-            };
-        } else if(parts[0] == "waitfor") {
-            new_line.type = SCRIPT_WAITFOR;
-            new_line.waitfor.actor = parts[1];
-        } else if(parts[0] == "turn") {
-            new_line.type = SCRIPT_TURN;
-            new_line.turn.actor = parts[1];
-            for(int i = 0; i < 4; i++) {
-                if(parts[2] == direction_names[i]) {
-                    new_line.turn.direction = (Direction)i;
-                }
-            }
-        } else if(parts[0] == "delay") {
-            new_line.type = SCRIPT_DELAY;
-            new_line.delay.duration = std::stof(parts[1]);
-            new_line.delay.timer = new_line.delay.duration;
-        }
-
-        // Add the parsed line to the script
-        lines.push_back(new_line);
-    }
-
-    // Add the new script to the scripts
-    current_line = 0;
-}
-*/
 
 void Scene::handle_input(SDL_Event e) {
     if(e.type == SDL_KEYDOWN) {
@@ -198,8 +161,13 @@ void Scene::handle_input(SDL_Event e) {
                         }
                     }
                 } else {
+                    // TODO only do this while no script is playing
+                    // Also update the scripts for loop because we really only want to run one script at a time
                     player_interact();
                 }
+                break;
+            case SDLK_e:
+                script_begin(0);
                 break;
         }
     } else if(e.type == SDL_KEYUP) {
@@ -242,6 +210,49 @@ void Scene::handle_input(SDL_Event e) {
     }
 }
 
+
+void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
+    dialog_queue.clear();
+    for(DialogLine dialog_line : dialog_lines) {
+        dialog_queue.push_back(dialog_line);
+    }
+    dialog_index = 1;
+    dialog_index_timer = DIALOG_CHAR_SPEED;
+    dialog_open = true;
+}
+
+void Scene::update(float delta) {
+    if(!actors[actor_player].in_scene) {
+        player_handle_input(delta);
+    }
+
+    for(int i = 0; i < scripts.size(); i++) {
+        if(scripts[i].playing) {
+            script_execute(i, delta);
+        }
+    }
+
+    for(int i = 0; i < actors.size(); i++) {
+        actor_update(i, delta);
+    }
+}
+
+void Scene::player_handle_input(float delta) {
+    if(dialog_open) {
+        actors[actor_player].velocity = (vec2) { .x = 0, .y = 0 };
+
+        if(dialog_index != dialog_queue[0].text.length()) {
+            dialog_index_timer -= delta;
+            if(dialog_index_timer <= 0) {
+                dialog_index++;
+                dialog_index_timer = DIALOG_CHAR_SPEED;
+            }
+        }
+    } else if (!actors[actor_player].in_scene) {
+        actors[actor_player].velocity = player_direction;
+    }
+}
+
 void Scene::player_interact() {
     static const int SCANBOX_LENGTH = 4;
     SDL_Rect interact_scan_rect = actors[actor_player].get_rect();
@@ -277,62 +288,33 @@ void Scene::player_interact() {
     }
 }
 
-void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
-    dialog_queue.clear();
-    for(DialogLine dialog_line : dialog_lines) {
-        dialog_queue.push_back(dialog_line);
-    }
-    dialog_index = 1;
-    dialog_index_timer = DIALOG_CHAR_SPEED;
-    dialog_open = true;
-}
+void Scene::actor_update(int actor_index, float delta) {
+    Actor& actor = actors[actor_index];
 
-void Scene::update(float delta) {
-    if(dialog_open) {
-        actors[actor_player].velocity = (vec2) { .x = 0, .y = 0 };
+    actor.update(delta);
 
-        if(dialog_index != dialog_queue[0].text.length()) {
-            dialog_index_timer -= delta;
-            if(dialog_index_timer <= 0) {
-                dialog_index++;
-                dialog_index_timer = DIALOG_CHAR_SPEED;
-            }
+    SDL_Rect actor_rect = actor.get_rect();
+    for(SDL_Rect collider : colliders) {
+        if(rects_intersect(actor_rect, collider)) {
+            actor.handle_collision(collider);
+            break;
         }
-    } else {
-        actors[actor_player].velocity = player_direction;
     }
 
-    /*
-    for(int i = 0; i < scripts.size(); i++) {
-        while(script_execute(i, delta));
-    }
-    */
-
-    for(int i = 0; i < actors.size(); i++) {
-        actors[i].update(delta);
-
-        SDL_Rect actor_rect = actors[i].get_rect();
-        for(SDL_Rect collider : colliders) {
-            if(rects_intersect(actor_rect, collider)) {
-                actors[i].handle_collision(collider);
-                break;
-            }
+    for(int j = 0; j < actors.size(); j++) {
+        if(actor_index == j) {
+            continue;
         }
 
-        for(int j = 0; j < actors.size(); j++) {
-            if(i == j) {
-                continue;
-            }
-
-            if(rects_intersect(actor_rect, actors[j].get_rect())) {
-                actors[i].handle_collision(actors[j].get_rect());
-                break;
-            }
+        if(rects_intersect(actor_rect, actors[j].get_rect())) {
+            actor.handle_collision(actors[j].get_rect());
+            break;
         }
     }
 }
 
-/*
+// Scripts
+//
 int Scene::get_actor_from_name(std::string name) {
     for(int i = 0; i < actors.size(); i++) {
         if(name == actors[i].name) {
@@ -344,9 +326,27 @@ int Scene::get_actor_from_name(std::string name) {
     return -1;
 }
 
+void Scene::script_begin(int script_index) {
+    scripts[script_index].current_line = 0;
+    scripts[script_index].playing = true;
+
+    for(std::string required_actor : scripts[script_index].required_actors) {
+        actors[get_actor_from_name(required_actor)].in_scene = true;
+    }
+}
+
+void Scene::script_finish(int script_index) {
+    scripts[script_index].playing = false;
+
+    for(std::string required_actor : scripts[script_index].required_actors) {
+        actors[get_actor_from_name(required_actor)].in_scene = false;
+    }
+}
+
 void Scene::script_execute(int script_index, float delta) {
     Script& script = scripts.at(script_index);
     if(script.current_line == script.lines.size()) {
+        script_finish(script_index);
         return;
     }
     ScriptLine& line = script.lines[script.current_line];
@@ -356,7 +356,7 @@ void Scene::script_execute(int script_index, float delta) {
             actors[get_actor_from_name(line.move.actor)].target = line.move.target;
             break;
         case SCRIPT_WAITFOR:
-            if(actors[get_actor_from_name(line.waitfor.actor)].target.x != -1) {
+            if(actors[get_actor_from_name(line.waitfor.actor)].has_target()) {
                 return;
             }
             break;
@@ -378,7 +378,6 @@ void Scene::script_execute(int script_index, float delta) {
 
     script_execute(script_index, delta);
 }
-*/
 
 void Scene::render() {
     render_image(background_image, camera_offset.inverse());

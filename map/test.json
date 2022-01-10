@@ -15,10 +15,28 @@
                 { "speaker": "Betty", "text": "Eh? You mean you don't recognize me?" }
             ],
             "path": [
+                { "position": [200, 100], "direction": "right", "wait_duration": 1 },
+                { "position": [100, 100], "direction": "left", "wait_duration": 1 }
             ]
         }
     ],
     "scripts": [
-
+        {
+            "requires": ["player", "Betty"],
+            "lines": [
+                { "type": "move", "actor": "player", "position": [84, 84] },
+                { "type": "move", "actor": "Betty", "position": [100, 84] },
+                { "type": "waitfor", "actor": "player" },
+                { "type": "waitfor", "actor": "Betty" },
+                { "type": "turn", "actor": "Betty", "direction": "up" },
+                { "type": "delay", "duration": 0.1 },
+                { "type": "turn", "actor": "Betty", "direction": "right" },
+                { "type": "delay", "duration": 0.1 },
+                { "type": "turn", "actor": "Betty", "direction": "down" },
+                { "type": "delay", "duration": 0.1 },
+                { "type": "turn", "actor": "Betty", "direction": "left" },
+                { "type": "delay", "duration": 0.1 }
+            ]
+        }
     ]
 }
