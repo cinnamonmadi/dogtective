@@ -6,13 +6,13 @@
     ],
     "actors": [
         {
-            "name": "Betty",
+            "name": "Tris",
             "image": "./res/witch.png",
             "position": [100, 100],
             "dialog" : [
-                { "speaker": "Betty", "text": "Hello friend!" },
+                { "speaker": "Tris", "text": "Hello friend!" },
                 { "speaker": "Dogtective", "text": "Wait, who are you?" },
-                { "speaker": "Betty", "text": "Eh? You mean you don't recognize me?" }
+                { "speaker": "Tris", "text": "Eh? You mean you don't recognize me?" }
             ],
             "path": [
                 { "position": [200, 100], "direction": "right", "wait_duration": 1 },
@@ -22,20 +22,26 @@
     ],
     "scripts": [
         {
-            "requires": ["player", "Betty"],
+            "requires": ["player", "Tris"],
             "lines": [
                 { "type": "move", "actor": "player", "position": [84, 84] },
-                { "type": "move", "actor": "Betty", "position": [100, 84] },
+                { "type": "move", "actor": "Tris", "position": [100, 84] },
                 { "type": "waitfor", "actor": "player" },
-                { "type": "waitfor", "actor": "Betty" },
-                { "type": "turn", "actor": "Betty", "direction": "up" },
-                { "type": "delay", "duration": 0.1 },
-                { "type": "turn", "actor": "Betty", "direction": "right" },
-                { "type": "delay", "duration": 0.1 },
-                { "type": "turn", "actor": "Betty", "direction": "down" },
-                { "type": "delay", "duration": 0.1 },
-                { "type": "turn", "actor": "Betty", "direction": "left" },
-                { "type": "delay", "duration": 0.1 }
+                { "type": "waitfor", "actor": "Tris" },
+                { "type": "dialog", "lines": [
+                    { "speaker": "Dogtective", "text": "Hey, you should spin around in a circle." },
+                    { "speaker": "Tris", "text": "Do you dare me?" },
+                    { "speaker": "Dogtective", "text": "I triple dog dare you." },
+                    { "speaker": "Tris", "text": "Hmm, okay then." }
+                ]},
+                { "type": "turn", "actor": "Tris", "direction": "up" },
+                { "type": "delay", "duration": 0.5 },
+                { "type": "turn", "actor": "Tris", "direction": "right" },
+                { "type": "delay", "duration": 0.5 },
+                { "type": "turn", "actor": "Tris", "direction": "down" },
+                { "type": "delay", "duration": 0.5 },
+                { "type": "turn", "actor": "Tris", "direction": "left" },
+                { "type": "delay", "duration": 0.5 }
             ]
         }
     ]

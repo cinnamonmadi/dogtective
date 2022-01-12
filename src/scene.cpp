@@ -103,6 +103,15 @@ Scene::Scene(std::string path) {
                 new_line.type = SCRIPT_DELAY;
                 new_line.delay.duration = script_line_json["duration"].get<float>();
                 new_line.delay.timer = new_line.delay.duration;
+            } else if(line_type == "dialog") {
+                new_line.type = SCRIPT_DIALOG;
+                new_line.dialog.has_been_opened = false;
+                for(json dialog_line_json : script_line_json["lines"]) {
+                    new_line.dialog.lines.push_back((DialogLine) {
+                        .speaker = dialog_line_json["speaker"].get<std::string>(),
+                        .text = dialog_line_json["text"].get<std::string>()
+                    });
+                }
             }
 
             new_script.lines.push_back(new_line);
@@ -222,9 +231,7 @@ void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
 }
 
 void Scene::update(float delta) {
-    if(!actors[actor_player].in_scene) {
-        player_handle_input(delta);
-    }
+    player_handle_input(delta);
 
     for(int i = 0; i < scripts.size(); i++) {
         if(scripts[i].playing) {
@@ -369,6 +376,15 @@ void Scene::script_execute(int script_index, float delta) {
                 return;
             }
             line.delay.timer = line.delay.duration;
+            break;
+        case SCRIPT_DIALOG:
+            if(!line.dialog.has_been_opened) {
+                open_dialog(line.dialog.lines);
+                line.dialog.has_been_opened = true;
+                return;
+            } else if(dialog_open) {
+                return;
+            }
             break;
         default:
             break;

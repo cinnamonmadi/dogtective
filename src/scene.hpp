@@ -14,6 +14,7 @@ class Scene : public IState {
             SCRIPT_WAITFOR,
             SCRIPT_TURN,
             SCRIPT_DELAY,
+            SCRIPT_DIALOG,
         } ScriptType;
 
         typedef struct ScriptMove {
@@ -35,12 +36,18 @@ class Scene : public IState {
             float timer;
         } ScriptDelay;
 
+        typedef struct ScriptDialog {
+            std::vector<DialogLine> lines;
+            bool has_been_opened;
+        } ScriptDialog;
+
         typedef struct ScriptLine {
             ScriptType type;
             ScriptMove move;
             ScriptWaitFor waitfor;
             ScriptTurn turn;
             ScriptDelay delay;
+            ScriptDialog dialog;
         } ScriptLine;
 
         typedef struct Script {
