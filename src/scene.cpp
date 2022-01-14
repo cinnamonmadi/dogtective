@@ -20,10 +20,13 @@ Scene::Scene(std::string path) {
     map_file.close();
 
     background_image = render_load_image(map_json["background"].get<std::string>());
+    map_size = (vec2) {
+        .x = map_json["map_size"][0].get<int>(),
+        .y = map_json["map_size"][1].get<int>(),
+    };
 
     // Load colliders
-    json collider_arrays = map_json["colliders"];
-    for(json collider_array : collider_arrays) {
+    for(json collider_array : map_json["colliders"]) {
         SDL_Rect collider = (SDL_Rect) {
             .x = collider_array[0].get<int>(),
             .y = collider_array[1].get<int>(),
@@ -33,9 +36,28 @@ Scene::Scene(std::string path) {
         colliders.push_back(collider);
     }
 
+    // Load scenery
+    for(json scenery_json : map_json["scenery"]) {
+        Scenery new_scenery;
+        json collider_array = scenery_json["collider"];
+        new_scenery.collider = (SDL_Rect) {
+            .x = collider_array[0].get<int>(),
+            .y = collider_array[1].get<int>(),
+            .w = collider_array[2].get<int>(),
+            .h = collider_array[3].get<int>()
+        };
+        for(json dialog_line : scenery_json["description"]) {
+            new_scenery.description.push_back((DialogLine) {
+                .speaker = "",
+                .text = dialog_line.get<std::string>(),
+            });
+        };
+        scenery.push_back(new_scenery);
+    }
+
+
     // Load actors
-    json actor_jsons = map_json["actors"];
-    for(json actor_json : actor_jsons) {
+    for(json actor_json : map_json["actors"]) {
         std::string name = actor_json["name"].get<std::string>();
         std::string image_path = actor_json["image"].get<std::string>();
 
@@ -71,6 +93,7 @@ Scene::Scene(std::string path) {
     // Create player
     actors.push_back(Actor("player", "./res/witch.png"));
     actor_player = actors.size() - 1;
+    actor_being_spoken_to = -1;
 
     // Load scripts
     json script_jsons = map_json["scripts"];
@@ -127,10 +150,9 @@ Scene::Scene(std::string path) {
         direction_key_pressed[i] = false;
     }
     player_direction = (vec2) { .x = 0, .y = 0 };
-
     camera_offset = (vec2) { .x = 0, .y = 0 };
-
     dialog_open = false;
+    current_script = -1;
 }
 
 void Scene::handle_input(SDL_Event e) {
@@ -165,6 +187,7 @@ void Scene::handle_input(SDL_Event e) {
                         dialog_queue.erase(dialog_queue.begin());
                         if(dialog_queue.empty()) {
                             dialog_open = false;
+                            actor_being_spoken_to = -1;
                         } else {
                             dialog_index = 1;
                         }
@@ -233,16 +256,22 @@ void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
 void Scene::update(float delta) {
     player_handle_input(delta);
 
-    for(int i = 0; i < scripts.size(); i++) {
-        if(scripts[i].playing) {
-            script_execute(i, delta);
-        }
+    if(current_script != -1) {
+        script_execute(current_script, delta);
     }
 
     for(int i = 0; i < actors.size(); i++) {
-        actor_update(i, delta);
+        if(actor_being_spoken_to == i) {
+            actors[i].set_direction_towards(actors[actor_player].position);
+        } else {
+            actor_update(i, delta);
+        }
     }
+
+    camera_update(delta);
 }
+
+// Player
 
 void Scene::player_handle_input(float delta) {
     if(dialog_open) {
@@ -290,10 +319,57 @@ void Scene::player_interact() {
 
         if(rects_intersect(interact_scan_rect, actors[i].get_rect())) {
             open_dialog(actors[i].dialog);
+            actor_being_spoken_to = i;
+            return;
+        }
+    }
+
+    for(int i = 0; i < scenery.size(); i++) {
+        if(rects_intersect(interact_scan_rect, scenery[i].collider)) {
+            open_dialog(scenery[i].description);
             return;
         }
     }
 }
+
+// Camera
+
+void Scene::camera_update(float delta) {
+    static const float CAMERA_BOUNDS_H = 0.4;
+    static const float CAMERA_BOUNDS_V = 0.4;
+    static const float CAMERA_SPEED = 1;
+
+    if(actors[actor_player].in_scene) {
+        return;
+    }
+
+    Actor& player = actors[actor_player];
+    vec2 player_render_position = player.position - camera_offset;
+    if(player_render_position.x > SCREEN_WIDTH * 0.6) {
+
+        camera_offset.x += CAMERA_SPEED;
+    } else if(player_render_position.x < SCREEN_WIDTH * CAMERA_BOUNDS_H) {
+        camera_offset.x -= CAMERA_SPEED;
+    }
+    if(player_render_position.y > SCREEN_HEIGHT * (1 - CAMERA_BOUNDS_V)) {
+        camera_offset.y += CAMERA_SPEED;
+    } else if(player_render_position.y < SCREEN_HEIGHT * CAMERA_BOUNDS_V) {
+        camera_offset.y -= CAMERA_SPEED;
+    }
+
+    if(camera_offset.x < 0) {
+        camera_offset.x = 0;
+    } else if(camera_offset.x > map_size.x - SCREEN_WIDTH) {
+        camera_offset.x = map_size.x - SCREEN_WIDTH;
+    }
+    if(camera_offset.y < 0) {
+        camera_offset.y = 0;
+    } else if(camera_offset.y > map_size.y - SCREEN_HEIGHT) {
+        camera_offset.y = map_size.y - SCREEN_HEIGHT;
+    }
+}
+
+// Actors
 
 void Scene::actor_update(int actor_index, float delta) {
     Actor& actor = actors[actor_index];
@@ -321,7 +397,7 @@ void Scene::actor_update(int actor_index, float delta) {
 }
 
 // Scripts
-//
+
 int Scene::get_actor_from_name(std::string name) {
     for(int i = 0; i < actors.size(); i++) {
         if(name == actors[i].name) {
@@ -334,12 +410,19 @@ int Scene::get_actor_from_name(std::string name) {
 }
 
 void Scene::script_begin(int script_index) {
+    if(current_script != -1) {
+        std::cout << "Error! We shouldn't be starting a new script while one is currently playing. Something is probably very wrong" << std::endl;
+        return;
+    }
+
     scripts[script_index].current_line = 0;
     scripts[script_index].playing = true;
 
     for(std::string required_actor : scripts[script_index].required_actors) {
         actors[get_actor_from_name(required_actor)].in_scene = true;
     }
+
+    current_script = script_index;
 }
 
 void Scene::script_finish(int script_index) {
@@ -348,6 +431,8 @@ void Scene::script_finish(int script_index) {
     for(std::string required_actor : scripts[script_index].required_actors) {
         actors[get_actor_from_name(required_actor)].in_scene = false;
     }
+
+    current_script = -1;
 }
 
 void Scene::script_execute(int script_index, float delta) {
@@ -385,6 +470,9 @@ void Scene::script_execute(int script_index, float delta) {
             } else if(dialog_open) {
                 return;
             }
+            // If we've reached this point, it means the dialog has been read and we are ready to proceed with the rest of the script
+            // So we reset the has_been_opened flag so that it will work again next time we want to run this script
+            line.dialog.has_been_opened = false;
             break;
         default:
             break;
@@ -401,11 +489,11 @@ void Scene::render() {
         actor.render(camera_offset);
     }
     if(dialog_open) {
-        render_dialog(dialog_queue[0].speaker, dialog_queue[0].text.substr(0, dialog_index));
+        render_dialog(dialog_queue[0].speaker, dialog_queue[0].text, dialog_index);
     }
 }
 
-void Scene::render_dialog(std::string speaker, std::string text) {
+void Scene::render_dialog(std::string speaker, std::string text, std::size_t dialog_index) {
     static const int ROW_CHAR_LENGTH = 37;
     static const SDL_Rect DIALOG_BOX_RECT = (SDL_Rect) { .x = 0, .y = 130, .w = 320, .h = 50 };
     static const vec2 DIALOG_PADDING = (vec2) { .x = 10, .y = 2 };
@@ -416,26 +504,31 @@ void Scene::render_dialog(std::string speaker, std::string text) {
     std::string rows[3];
 
     int row_index = 0;
-    while(row_index != 3 && text.length() != 0) {
-        std::size_t space_index = text.find(" ");
-        std::string next_word;
+    std::size_t copy_index = 0;
+    while(row_index != 3 && copy_index <= dialog_index) {
+        // Add the next character
+        rows[row_index].push_back(text[copy_index]);
+        copy_index++;
 
-        if(space_index == std::string::npos) {
-            next_word = text;
-            text = "";
-        } else {
-            next_word = text.substr(0, space_index);
-            text = text.substr(space_index + 1);
-        }
-
-        if(rows[row_index].length() + next_word.length() + 1 > ROW_CHAR_LENGTH) {
-            row_index++;
-        }
-        if(row_index != 3) {
-            if(rows[row_index].length() != 0) {
-                rows[row_index] += " ";
+        // If we've reached the end of the word...
+        if(text[copy_index] == ' ') {
+            // ...find the length of the next word
+            std::size_t next_space_index = text.substr(copy_index + 1).find(" ");
+            std::size_t next_word_length;
+            if(next_space_index == std::string::npos) {
+                next_word_length = text.substr(copy_index + 1).length();
+            } else {
+                next_word_length = text.substr(copy_index + 1, next_space_index).length();
             }
-            rows[row_index] += next_word;
+
+            // If it's too long for this row, handle the space as a new line. Otherwise count it as a space
+            if(rows[row_index].length() + next_word_length + 1 > ROW_CHAR_LENGTH) {
+                row_index++;
+            } else {
+                rows[row_index].push_back(' ');
+            }
+            // And since we've already added a space, move up the copy_index so that we don't add the space
+            copy_index++;
         }
     }
 
@@ -445,9 +538,9 @@ void Scene::render_dialog(std::string speaker, std::string text) {
             continue;
         }
         render_text(rows[i].c_str(), FONT_HELVETICA, COLOR_BLACK,
-                (vec2) {
-                .x = DIALOG_BOX_RECT.x + DIALOG_PADDING.x,
-                .y = DIALOG_BOX_RECT.y + DIALOG_PADDING.y + (DIALOG_LINE_HEIGHT * i) });
+            (vec2) {
+            .x = DIALOG_BOX_RECT.x + DIALOG_PADDING.x,
+            .y = DIALOG_BOX_RECT.y + DIALOG_PADDING.y + (DIALOG_LINE_HEIGHT * i) });
     }
     if(speaker.length() != 0) {
         render_dialog_box(SPEAKER_BOX_RECT);

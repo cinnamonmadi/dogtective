@@ -33,6 +33,7 @@ class Actor {
 
         void update(float delta);
         void set_velocity_towards(vec2 target_position);
+        void set_direction_towards(vec2 target_position);
         void handle_collision(const SDL_Rect& collider);
         void render(const vec2& camera_offset);
 

@@ -57,6 +57,11 @@ class Scene : public IState {
             bool playing;
         } Script;
 
+        typedef struct Scenery {
+            SDL_Rect collider;
+            std::vector<DialogLine> description;
+        } Scenery;
+
         Scene(std::string path);
         void handle_input(SDL_Event e);
         void update(float delta);
@@ -66,6 +71,9 @@ class Scene : public IState {
         // Player
         void player_handle_input(float delta);
         void player_interact();
+
+        // Camera
+        void camera_update(float delta);
 
         // Actors
         void actor_update(int actor_index, float delta);
@@ -78,17 +86,20 @@ class Scene : public IState {
 
         // Dialog
         void open_dialog(const std::vector<DialogLine>& dialog_lines);
-        void render_dialog(std::string speaker, std::string text);
+        void render_dialog(std::string speaker, std::string text, std::size_t dialog_index);
 
         bool direction_key_pressed[4];
+        vec2 map_size;
         vec2 player_direction;
         vec2 camera_offset;
 
         int background_image;
         std::vector<SDL_Rect> colliders;
+        std::vector<Scenery> scenery;
 
         std::vector<Actor> actors;
         int actor_player;
+        int actor_being_spoken_to;
 
         std::vector<DialogLine> dialog_queue;
         std::size_t dialog_index;
@@ -96,4 +107,5 @@ class Scene : public IState {
         bool dialog_open;
 
         std::vector<Script> scripts;
+        int current_script;
 };

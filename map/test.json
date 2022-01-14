@@ -1,8 +1,15 @@
 {
     "background": "res/maps/test.png",
+    "map_size": [640, 360],
     "colliders": [
         [ 150, 182, 47, 47 ],
         [ 232, 260, 41, 37 ]
+    ],
+    "scenery": [
+        {
+            "collider": [150, 182, 47, 47],
+            "description": [ "It's a refridgerator.", "Looks like there's some old lasagna inside." ]
+        }
     ],
     "actors": [
         {

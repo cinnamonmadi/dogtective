@@ -113,7 +113,6 @@ Image* render_create_text_image(const char* text, Font font, SDL_Color color) {
         return nullptr;
     }
 
-
     Image* text_image = new Image();
     text_image->texture = text_texture;
     text_image->size = (vec2){ .x = text_surface->w, .y = text_surface->h };

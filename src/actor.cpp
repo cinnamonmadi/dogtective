@@ -103,6 +103,22 @@ void Actor::set_velocity_towards(vec2 target_position) {
     }
 }
 
+void Actor::set_direction_towards(vec2 target_position) {
+    if(abs(position.x - target_position.x) >= abs(position.y - target_position.y)) {
+        if(position.x >= target_position.x) {
+            facing_direction = DIRECTION_LEFT;
+        } else {
+            facing_direction = DIRECTION_RIGHT;
+        }
+    } else {
+        if(position.y >= target_position.y) {
+            facing_direction = DIRECTION_UP;
+        } else {
+            facing_direction = DIRECTION_DOWN;
+        }
+    }
+}
+
 void Actor::handle_collision(const SDL_Rect& collider) {
     position -= velocity;
     SDL_Rect self_rect = get_rect();
