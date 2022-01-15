@@ -6,6 +6,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
 #include <string>
+#include <vector>
 
 // Game constants
 const char* GAME_TITLE = "Dogtective";
@@ -18,7 +19,6 @@ SDL_Renderer* renderer;
 int resolution_width = 1280;
 int resolution_height = 720;
 
-bool engine_running = true;
 bool engine_is_fullscreen = false;
 bool engine_render_fps = false;
 std::string map_path = "./map/test.json";
@@ -35,6 +35,7 @@ float deltas_this_second = 0.0f;
 float dps = 0;
 
 IState* state;
+std::vector<IState*> states;
 
 // Game loop functions
 void input();
@@ -53,16 +54,19 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    state = new Scene(map_path);
+    states.push_back(new Scene(map_path));
 
-    while(engine_running) {
+    while(!states.empty()) {
         input();
         update();
         render();
         engine_clock_tick();
 
-        if(state->finished) {
-            engine_running = false;
+        if(states[states.size() - 1]->finished) {
+            states.pop_back();
+        } else if(states[states.size() - 1]->new_state != nullptr) {
+            states.push_back(states[states.size() - 1]->new_state);
+            states[states.size() - 2]->new_state = nullptr;
         }
     }
 
@@ -75,22 +79,25 @@ void input() {
     SDL_Event e;
     while(SDL_PollEvent(&e) != 0) {
         if(e.type == SDL_QUIT) {
-            engine_running = false;
+            states.clear();
         } else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_F2) {
             engine_render_fps = !engine_render_fps;
         } else {
-            state->handle_input(e);
+            states[states.size() - 1]->handle_input(e);
         }
     }
 }
 
 void update() {
-    state->update(delta);
+    states[states.size() - 1]->update(delta);
 }
 void render() {
     render_clear();
 
-    state->render();
+    if(states[states.size() - 1]->render_previous && states.size() != 1) {
+        states[states.size() - 2]->render();
+    }
+    states[states.size() - 1]->render();
 
     if(engine_render_fps) {
         render_text(("FPS: " + std::to_string(fps)).c_str(), FONT_HACK, COLOR_YELLOW, (vec2) { .x = 0, .y =  0});

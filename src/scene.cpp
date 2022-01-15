@@ -1,6 +1,7 @@
 #include "scene.hpp"
 
 #include "render.hpp"
+#include "pause.hpp"
 #include "json.hpp"
 #include <iostream>
 #include <fstream>
@@ -200,6 +201,13 @@ void Scene::handle_input(SDL_Event e) {
                 break;
             case SDLK_e:
                 script_begin(0);
+                break;
+            case SDLK_p:
+                for(int i = 0; i < 4; i++) {
+                    direction_key_pressed[i] = false;
+                }
+                player_direction = (vec2) { .x = 0, .y = 0 };
+                new_state = new Pause();
                 break;
         }
     } else if(e.type == SDL_KEYUP) {
