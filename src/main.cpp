@@ -20,6 +20,7 @@ int resolution_width = 1280;
 int resolution_height = 720;
 
 bool engine_is_fullscreen = false;
+bool engine_is_running = true;
 bool engine_render_fps = false;
 std::string map_path = "./map/test.json";
 
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
 
     states.push_back(new Scene(map_path));
 
-    while(!states.empty()) {
+    while(engine_is_running && !states.empty()) {
         input();
         update();
         render();
@@ -79,7 +80,7 @@ void input() {
     SDL_Event e;
     while(SDL_PollEvent(&e) != 0) {
         if(e.type == SDL_QUIT) {
-            states.clear();
+            engine_is_running = false;
         } else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_F2) {
             engine_render_fps = !engine_render_fps;
         } else {

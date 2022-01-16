@@ -40,6 +40,11 @@ Scene::Scene(std::string path) {
     // Load scenery
     for(json scenery_json : map_json["scenery"]) {
         Scenery new_scenery;
+
+        // Register scenery as evidence
+        inventory_create_evidence(scenery_json["name"].get<std::string>());
+
+        // Load scenery collider
         json collider_array = scenery_json["collider"];
         new_scenery.collider = (SDL_Rect) {
             .x = collider_array[0].get<int>(),
@@ -47,12 +52,16 @@ Scene::Scene(std::string path) {
             .w = collider_array[2].get<int>(),
             .h = collider_array[3].get<int>()
         };
+
+        // Load scenery description lines
         for(json dialog_line : scenery_json["description"]) {
             new_scenery.description.push_back((DialogLine) {
                 .speaker = "",
                 .text = dialog_line.get<std::string>(),
             });
         };
+
+        // Add scenery to list
         scenery.push_back(new_scenery);
     }
 

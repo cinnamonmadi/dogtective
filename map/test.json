@@ -7,8 +7,14 @@
     ],
     "scenery": [
         {
+            "name": "Refridgerator",
             "collider": [150, 182, 47, 47],
             "description": [ "It's a refridgerator.", "Looks like there's some old lasagna inside." ]
+        },
+        {
+            "name": "Pool Table",
+            "collider": [232, 260, 41, 37],
+            "description": [ "It's a pool table with a crack on the rim, and what looks like spilled wine on the fabric." ]
         }
     ],
     "actors": [

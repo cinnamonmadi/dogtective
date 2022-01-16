@@ -1,0 +1,19 @@
+#pragma once
+
+#include <vector>
+#include <string>
+
+class Inventory {
+    public:
+        typedef struct Evidence {
+            std::string name;
+            bool registered;
+        } Evidence;
+
+        Inventory();
+        void create_evidence(std::string name);
+        void register_evidence(std::string name);
+        bool is_evidence_registered(std::string name) const;
+    private:
+        std::vector<Evidence> evidence;
+};
