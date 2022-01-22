@@ -2,11 +2,16 @@
 
 #include "render.hpp"
 
+Menu::Menu() {}
+
 Menu::Menu(SDL_Rect rect) {
     this->rect = rect;
+    cursor_index = 0;
     cursor_image = render_load_image("./res/cursor.png");
+
     padding_left = 8;
     padding_top = 5;
+
     reset();
 }
 

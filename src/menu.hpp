@@ -6,6 +6,7 @@
 
 class Menu {
     public:
+        Menu();
         Menu(SDL_Rect rect);
         void reset();
         void navigate_up();

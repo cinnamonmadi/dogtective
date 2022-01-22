@@ -15,6 +15,7 @@ void inventory_register_evidence(std::string name) {
     for(int i = 0; i < evidence.size(); i++) {
         if(evidence[i].name == name) {
             evidence[i].registered = true;
+            return;
         }
     }
 

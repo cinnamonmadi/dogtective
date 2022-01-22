@@ -9,8 +9,16 @@
 using nlohmann::json;
 
 const float DIALOG_CHAR_SPEED = 0.05;
+const int ROW_CHAR_LENGTH = 37;
+const int DIALOG_BOX_HEIGHT = 50;
+const int DIALOG_LINE_HEIGHT = 14;
+const vec2 DIALOG_PADDING = (vec2) { .x = 10, .y = 2 };
+const vec2 EVIDENCE_PROMPT_SIZE = (vec2) { .x = 60, .y = 60 };
+
+// Init
 
 Scene::Scene(std::string path) {
+    // Load scene file
     std::ifstream map_file;
     map_file.open(path);
     if(!map_file.is_open()) {
@@ -20,6 +28,7 @@ Scene::Scene(std::string path) {
     json map_json = json::parse(map_file);
     map_file.close();
 
+    // Load map background image
     background_image = render_load_image(map_json["background"].get<std::string>());
     map_size = (vec2) {
         .x = map_json["map_size"][0].get<int>(),
@@ -42,7 +51,8 @@ Scene::Scene(std::string path) {
         Scenery new_scenery;
 
         // Register scenery as evidence
-        inventory_create_evidence(scenery_json["name"].get<std::string>());
+        new_scenery.name = scenery_json["name"].get<std::string>();
+        inventory_create_evidence(new_scenery.name);
 
         // Load scenery collider
         json collider_array = scenery_json["collider"];
@@ -101,7 +111,7 @@ Scene::Scene(std::string path) {
     }
 
     // Create player
-    actors.push_back(Actor("player", "./res/witch.png"));
+    actors.push_back(Actor("player", "./res/dogtective"));
     actor_player = actors.size() - 1;
     actor_being_spoken_to = -1;
 
@@ -155,7 +165,17 @@ Scene::Scene(std::string path) {
         scripts.push_back(new_script);
     }
 
-    // Finalize map init
+    // Init UI
+    init_ui_rects();
+
+    // Init evidence dialog box
+    evidence_dialog = Menu(EVIDENCE_PROMPT_RECT);
+    evidence_dialog.labels.push_back("Yes");
+    evidence_dialog.labels.push_back("No");
+    evidence_dialog_evidence_name = "";
+    evidence_dialog_open = false;
+
+    // Finalize scene init
     for(int i = 0; i < 4; i++) {
         direction_key_pressed[i] = false;
     }
@@ -163,6 +183,33 @@ Scene::Scene(std::string path) {
     camera_offset = (vec2) { .x = 0, .y = 0 };
     dialog_open = false;
     current_script = -1;
+}
+
+void Scene::init_ui_rects() {
+    DIALOG_BOX_RECT = (SDL_Rect) {
+        .x = 0,
+        .y = SCREEN_HEIGHT - DIALOG_BOX_HEIGHT,
+        .w = SCREEN_WIDTH,
+        .h = DIALOG_BOX_HEIGHT
+    };
+    SPEAKER_BOX_RECT = (SDL_Rect) {
+        .x = 0,
+        .y = SCREEN_HEIGHT - DIALOG_BOX_HEIGHT - 15,
+        .w = 100,
+        .h = 20
+    };
+    SPEAKER_TEXT_CENTER_RECT = (SDL_Rect) {
+        .x = SPEAKER_BOX_RECT.x,
+        .y = SPEAKER_BOX_RECT.y - 1,
+        .w = SPEAKER_BOX_RECT.w,
+        .h = SPEAKER_BOX_RECT.h
+    };
+    EVIDENCE_PROMPT_RECT = (SDL_Rect) {
+        .x = SCREEN_WIDTH - EVIDENCE_PROMPT_SIZE.x,
+        .y = DIALOG_BOX_RECT.y - EVIDENCE_PROMPT_SIZE.y,
+        .w = EVIDENCE_PROMPT_SIZE.x,
+        .h = EVIDENCE_PROMPT_SIZE.y
+    };
 }
 
 void Scene::handle_input(SDL_Event e) {
@@ -174,12 +221,20 @@ void Scene::handle_input(SDL_Event e) {
                 finished = true;
                 break;
             case SDLK_w:
-                player_direction.y = -1;
-                direction_key_pressed[DIRECTION_UP] = true;
+                if(evidence_dialog_open) {
+                    evidence_dialog.navigate_up();
+                } else {
+                    player_direction.y = -1;
+                    direction_key_pressed[DIRECTION_UP] = true;
+                }
                 break;
             case SDLK_s:
-                player_direction.y = 1;
-                direction_key_pressed[DIRECTION_DOWN] = true;
+                if(evidence_dialog_open) {
+                    evidence_dialog.navigate_down();
+                } else {
+                    player_direction.y = 1;
+                    direction_key_pressed[DIRECTION_DOWN] = true;
+                }
                 break;
             case SDLK_a:
                 player_direction.x = -1;
@@ -190,18 +245,10 @@ void Scene::handle_input(SDL_Event e) {
                 direction_key_pressed[DIRECTION_RIGHT] = true;
                 break;
             case SDLK_SPACE:
-                if(dialog_open) {
-                    if(dialog_index != dialog_queue[0].text.length()) {
-                        dialog_index = dialog_queue[0].text.length();
-                    } else {
-                        dialog_queue.erase(dialog_queue.begin());
-                        if(dialog_queue.empty()) {
-                            dialog_open = false;
-                            actor_being_spoken_to = -1;
-                        } else {
-                            dialog_index = 1;
-                        }
-                    }
+                if(evidence_dialog_open) {
+                    evidence_dialog_handle_select();
+                } else if(dialog_open) {
+                    progress_dialog();
                 } else {
                     // TODO only do this while no script is playing
                     // Also update the scripts for loop because we really only want to run one script at a time
@@ -259,6 +306,23 @@ void Scene::handle_input(SDL_Event e) {
     }
 }
 
+// Dialog
+
+void Scene::progress_dialog() {
+    if(dialog_index != dialog_queue[0].text.length()) {
+        dialog_index = dialog_queue[0].text.length();
+    } else if (dialog_queue.size() == 1 && evidence_dialog_evidence_name != "") {
+        evidence_dialog_open = true;
+    } else {
+        dialog_queue.erase(dialog_queue.begin());
+        if(dialog_queue.empty()) {
+            dialog_open = false;
+            actor_being_spoken_to = -1;
+        } else {
+            dialog_index = 1;
+        }
+    }
+}
 
 void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
     dialog_queue.clear();
@@ -268,6 +332,21 @@ void Scene::open_dialog(const std::vector<DialogLine>& dialog_lines) {
     dialog_index = 1;
     dialog_index_timer = DIALOG_CHAR_SPEED;
     dialog_open = true;
+}
+
+// Evidence
+
+void Scene::evidence_dialog_handle_select() {
+    std::string action = evidence_dialog.select();
+    if(action == "Yes") {
+        inventory_register_evidence(evidence_dialog_evidence_name);
+    }
+
+    dialog_queue.erase(dialog_queue.begin());
+    dialog_open = false;
+    actor_being_spoken_to = -1;
+    evidence_dialog_evidence_name = "";
+    evidence_dialog_open = false;
 }
 
 void Scene::update(float delta) {
@@ -300,6 +379,8 @@ void Scene::player_handle_input(float delta) {
                 dialog_index++;
                 dialog_index_timer = DIALOG_CHAR_SPEED;
             }
+        } else if(dialog_queue.size() == 1 && evidence_dialog_evidence_name != "" && !evidence_dialog_open) {
+            evidence_dialog_open = true;
         }
     } else if (!actors[actor_player].in_scene) {
         actors[actor_player].velocity = player_direction;
@@ -336,6 +417,8 @@ void Scene::player_interact() {
 
         if(rects_intersect(interact_scan_rect, actors[i].get_rect())) {
             open_dialog(actors[i].dialog);
+            dialog_left_profile_index = actors[actor_player].image_profile_index;
+            dialog_right_profile_index = actors[i].image_profile_index;
             actor_being_spoken_to = i;
             return;
         }
@@ -344,6 +427,13 @@ void Scene::player_interact() {
     for(int i = 0; i < scenery.size(); i++) {
         if(rects_intersect(interact_scan_rect, scenery[i].collider)) {
             open_dialog(scenery[i].description);
+            dialog_queue.push_back((DialogLine) {
+                .speaker = "",
+                .text = "Would you like to add " + scenery[i].name + " to the evidence log?"
+            });
+            dialog_left_profile_index = -1;
+            dialog_right_profile_index = -1;
+            evidence_dialog_evidence_name = scenery[i].name;
             return;
         }
     }
@@ -508,15 +598,20 @@ void Scene::render() {
     if(dialog_open) {
         render_dialog(dialog_queue[0].speaker, dialog_queue[0].text, dialog_index);
     }
+    if(evidence_dialog_open) {
+        evidence_dialog.render();
+    }
 }
 
 void Scene::render_dialog(std::string speaker, std::string text, std::size_t dialog_index) {
-    static const int ROW_CHAR_LENGTH = 37;
-    static const SDL_Rect DIALOG_BOX_RECT = (SDL_Rect) { .x = 0, .y = 130, .w = 320, .h = 50 };
-    static const vec2 DIALOG_PADDING = (vec2) { .x = 10, .y = 2 };
-    static const int DIALOG_LINE_HEIGHT = 14;
-    static const SDL_Rect SPEAKER_BOX_RECT = (SDL_Rect) { .x = 0, .y = 115, .w = 80, .h = 20 };
-    static const SDL_Rect SPEAKER_TEXT_CENTER_RECT = (SDL_Rect) { .x = 0, .y = 114, .w = 80, .h = 20 };
+    if(dialog_left_profile_index != -1) {
+        vec2 profile_frame_size = render_get_frame_size(dialog_left_profile_index);
+        render_image(dialog_left_profile_index, (vec2) { .x = 0, .y = DIALOG_BOX_RECT.y - profile_frame_size.y });
+    }
+    if(dialog_right_profile_index != -1) {
+        vec2 profile_frame_size = render_get_frame_size(dialog_right_profile_index);
+        render_image_frame(dialog_right_profile_index, (vec2) { .x = 0, .y = 0 }, (vec2) { .x = SCREEN_WIDTH - profile_frame_size.x, .y = DIALOG_BOX_RECT.y - profile_frame_size.y }, true);
+    }
 
     std::string rows[3];
 

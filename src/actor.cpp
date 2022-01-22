@@ -16,12 +16,18 @@ Direction get_direction_from_name(std::string name) {
 
 // Actor functions
 
-const float ACTOR_FRAME_DURATION = 0.2f;
+const float ACTOR_FRAME_DURATION = 0.1f;
 const int SPEED = 1;
 
-Actor::Actor(std::string name, std::string image_path) {
+Actor::Actor(std::string name, std::string image_path_prefix) {
     this->name = name;
-    image_index = render_load_spritesheet(image_path, (vec2) { .x = 16, .y = 16 });
+
+    image_profile_index = render_load_image(image_path_prefix + "_profile.png");
+    image_idle_index = render_load_spritesheet(image_path_prefix + "_idle.png", (vec2) { .x = 32, .y = 32 });
+    image_walk_index = render_load_spritesheet(image_path_prefix + "_walk.png", (vec2) { .x = 32, .y = 32 });
+    image_index = image_idle_index;
+    image_flipped = false;
+
     facing_direction = DIRECTION_DOWN;
     position = (vec2) { .x = 0, .y = 0 };
     velocity = (vec2) { .x = 0,. y = 0 };
@@ -141,32 +147,36 @@ void Actor::handle_collision(const SDL_Rect& collider) {
 
 void Actor::update_sprite(float delta) {
     if(velocity.x == 0 && velocity.y == 0) {
+        image_index = image_idle_index;
+        image_flipped = false;
         animation_timer = ACTOR_FRAME_DURATION;
-        animation_frame = 0;
+        switch(facing_direction) {
+            case DIRECTION_UP:
+                animation_frame = 3;
+                break;
+            case DIRECTION_RIGHT:
+                animation_frame = 0;
+                break;
+            case DIRECTION_DOWN:
+                animation_frame = 1;
+                break;
+            case DIRECTION_LEFT:
+                animation_frame = 2;
+                break;
+        }
     } else {
+        image_index = image_walk_index;
         animation_timer -= delta;
         if(animation_timer <= 0) {
             animation_timer += ACTOR_FRAME_DURATION;
-            animation_frame = (animation_frame + 1) % 4;
+            animation_frame = (animation_frame + 1) % 8; // TODO change this to rely on frame data rather than a hard coded frame count
         }
+        image_flipped = facing_direction == DIRECTION_LEFT;
     }
 }
 
 void Actor::render(const vec2& camera_offset) {
-    vec2 sprite_frame;
-    switch(facing_direction) {
-        case DIRECTION_DOWN:
-            sprite_frame.y = 0;
-            break;
-        case DIRECTION_UP:
-            sprite_frame.y = 1;
-            break;
-        default:
-            sprite_frame.y = 2;
-            break;
-    }
-    sprite_frame.x = animation_frame;
-    bool flipped = facing_direction == DIRECTION_LEFT;
+    vec2 sprite_frame = (vec2) { .x = animation_frame, .y = 0 };
 
-    render_image_frame(image_index, sprite_frame, position - camera_offset, flipped);
+    render_image_frame(image_index, sprite_frame, position - camera_offset, image_flipped);
 }

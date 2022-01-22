@@ -22,7 +22,7 @@ bool render_load_resources() {
     render_load_font(FONT_HACK, "./res/hack.ttf", 10);
     render_load_font(FONT_HELVETICA, "./res/helvetica_mono.ttf", 14);
 
-    dialog_box_image = render_load_spritesheet("./res/frame.png", (vec2){ .x = 8, .y = 8 });
+    dialog_box_image = render_load_spritesheet("./res/dialogbox.png", (vec2){ .x = 16, .y = 16 });
 
     return true;
 }
@@ -67,9 +67,12 @@ int render_load_image(std::string path) {
         return -1;
     }
     new_image.size = (vec2) {  .x = loaded_surface->w, .y = loaded_surface->h };
+    new_image.frame_size = (vec2) { .x = new_image.size.x, .y = new_image.size.y };
 
     images.push_back(new_image);
     image_paths.push_back(path);
+
+    SDL_FreeSurface(loaded_surface);
 
     return images.size() - 1;
 }

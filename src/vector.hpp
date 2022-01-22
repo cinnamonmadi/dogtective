@@ -22,6 +22,9 @@ typedef struct vec2 {
         this->y -= other.y;
         return *this;
     }
+    inline vec2 operator*(const float f) const {
+        return (vec2) { .x = (int)(this->x * f), .y = (int)(this->y * f) };
+    }
     inline vec2 inverse() const {
         return (vec2) { .x = this->x * -1, .y = this->y * -1 };
     }

@@ -27,7 +27,7 @@ class Actor {
             float wait_duration;
         } PathNode;
 
-        Actor(std::string name, std::string path);
+        Actor(std::string name, std::string image_path_prefix);
         SDL_Rect get_rect() const;
         bool has_target() const;
 
@@ -39,7 +39,11 @@ class Actor {
 
         std::string name;
 
+        int image_idle_index;
+        int image_walk_index;
+        int image_profile_index;
         int image_index;
+        bool image_flipped;
         int animation_frame;
 
         Direction facing_direction;

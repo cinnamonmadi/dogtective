@@ -19,13 +19,13 @@
     ],
     "actors": [
         {
-            "name": "Tris",
-            "image": "./res/witch.png",
+            "name": "Dog2ctive",
+            "image": "./res/dogtective",
             "position": [100, 100],
             "dialog" : [
-                { "speaker": "Tris", "text": "Hello friend!" },
-                { "speaker": "Dogtective", "text": "Wait, who are you?" },
-                { "speaker": "Tris", "text": "Eh? You mean you don't recognize me?" }
+                { "speaker": "Dogtective", "text": "Hello friend!" },
+                { "speaker": "Dog2ctive", "text": "Wait, who are you?" },
+                { "speaker": "Dogtective", "text": "Eh? You mean you don't recognize me?" }
             ],
             "path": [
                 { "position": [200, 100], "direction": "right", "wait_duration": 1 },
